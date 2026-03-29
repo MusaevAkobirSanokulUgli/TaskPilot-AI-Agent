@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskPilot – Developer Use Case Guide</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;line-height:1.7}
+  a{color:#818cf8;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ── Language switcher ── */
+  .lang-bar{position:sticky;top:0;z-index:100;background:#1e293b;border-bottom:1px solid #334155;display:flex;align-items:center;gap:8px;padding:10px 24px;flex-wrap:wrap}
+  .lang-bar span{color:#94a3b8;font-size:.85rem;margin-right:4px}
+  .lang-btn{background:transparent;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:.85rem;transition:all .2s}
+  .lang-btn:hover{border-color:#6366f1;color:#e2e8f0}
+  .lang-btn.active{background:#6366f1;border-color:#6366f1;color:#fff;font-weight:600}
+
+  /* ── Layout ── */
+  .container{max-width:1100px;margin:0 auto;padding:40px 24px}
+  .lang-section{display:none}
+  .lang-section.active{display:block}
+
+  /* ── Hero ── */
+  .hero{text-align:center;padding:56px 0 40px}
+  .hero .badge{display:inline-block;background:#312e81;color:#a5b4fc;border:1px solid #4338ca;border-radius:20px;padding:4px 16px;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}
+  .hero h1{font-size:2.6rem;font-weight:800;color:#f1f5f9;line-height:1.2;margin-bottom:12px}
+  .hero h1 span{color:#6366f1}
+  .hero p{color:#94a3b8;font-size:1.1rem;max-width:680px;margin:0 auto}
+
+  /* ── Headings ── */
+  h2{font-size:1.5rem;font-weight:700;color:#f1f5f9;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #1e293b;display:flex;align-items:center;gap:10px}
+  h2::before{content:'';display:inline-block;width:4px;height:24px;background:#6366f1;border-radius:2px}
+  h3{font-size:1.1rem;font-weight:600;color:#c7d2fe;margin:24px 0 10px}
+  h4{font-size:.95rem;font-weight:600;color:#a5b4fc;margin:16px 0 8px}
+
+  /* ── Cards ── */
+  .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:20px}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px}
+  .card-sm{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px}
+  .card-sm h4{margin-top:0}
+
+  /* ── Quick start steps ── */
+  .qs-steps{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+  .qs-step{display:flex;gap:16px;align-items:flex-start;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:14px 18px}
+  .qs-num{min-width:32px;height:32px;border-radius:50%;background:#6366f1;color:#fff;font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .qs-body .title{font-weight:600;color:#e2e8f0;font-size:.9rem}
+  .qs-body .sub{color:#94a3b8;font-size:.83rem;margin-top:2px}
+
+  /* ── URLs ── */
+  .url-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:16px 0}
+  .url-card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px 16px}
+  .url-card .service{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:4px}
+  .url-card .url{font-family:monospace;font-size:.85rem;color:#a5b4fc}
+
+  /* ── Layers ── */
+  .layer-list{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+  .layer-item{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px}
+  .layer-item .layer-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:8px}
+  .layer-item .layer-title{font-weight:700;color:#c7d2fe;margin-bottom:8px}
+
+  /* ── Code blocks ── */
+  pre{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;overflow-x:auto;font-size:.82rem;font-family:'Fira Code','Cascadia Code',monospace;color:#e6edf3;margin:12px 0}
+  code{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:.82rem;font-family:monospace;color:#e6edf3}
+  .comment{color:#6e7681}
+
+  /* ── Use case cards ── */
+  .uc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
+  .uc-card{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px}
+  .uc-card .uc-num{display:inline-block;background:#6366f1;color:#fff;border-radius:6px;padding:2px 10px;font-size:.75rem;font-weight:700;margin-bottom:8px}
+  .uc-card .uc-title{font-weight:700;color:#e2e8f0;font-size:.9rem;margin-bottom:4px}
+  .uc-card .uc-inst{font-family:monospace;font-size:.78rem;color:#a5b4fc;background:#1e293b;border-radius:4px;padding:3px 8px;display:inline-block;margin-bottom:6px}
+  .uc-card .uc-steps{font-size:.8rem;color:#64748b}
+  .uc-card .uc-steps li{margin-bottom:3px}
+
+  /* ── React phase color legend ── */
+  .phase-legend{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  .ph{border-radius:6px;padding:6px 14px;font-size:.82rem;font-weight:600}
+  .ph.thinking{background:#451a03;color:#fb923c;border:1px solid #c2410c}
+  .ph.planning{background:#2e1065;color:#c084fc;border:1px solid #7c3aed}
+  .ph.acting{background:#172554;color:#60a5fa;border:1px solid #1d4ed8}
+  .ph.observing{background:#052e16;color:#4ade80;border:1px solid #15803d}
+
+  /* ── Kanban ── */
+  .kanban-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0}
+  .k-col{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px}
+  .k-col .k-title{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+  .k-col.todo .k-title{color:#94a3b8}
+  .k-col.inprog .k-title{color:#60a5fa}
+  .k-col.done .k-title{color:#4ade80}
+  .k-col.blocked .k-title{color:#f87171}
+  .k-task{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:6px 10px;font-size:.78rem;color:#94a3b8;margin-bottom:6px}
+
+  /* ── Memory tabs ── */
+  .mem-tabs{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
+  .mem-tab{border-radius:8px;padding:10px 18px;font-size:.85rem;font-weight:600}
+  .mem-tab.short{background:#1a2744;border:1px solid #1d4ed8;color:#60a5fa}
+  .mem-tab.working{background:#1a2e1a;border:1px solid #15803d;color:#4ade80}
+  .mem-tab.long{background:#2a1a44;border:1px solid #7c3aed;color:#c084fc}
+
+  /* ── Report types ── */
+  .report-types{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .rt{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:5px 14px;font-size:.82rem;color:#a5b4fc}
+
+  /* ── Tables ── */
+  .table-wrap{overflow-x:auto;margin:16px 0}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th{background:#1e293b;color:#94a3b8;text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid #334155}
+  td{padding:10px 14px;border-bottom:1px solid #1e293b;vertical-align:top}
+  tr:hover td{background:#1a2235}
+  td code{font-size:.78rem}
+  .badge-req{background:#0c4a6e;color:#38bdf8;border-radius:4px;padding:2px 8px;font-size:.75rem;font-weight:600}
+  .badge-opt{background:#1a2e1a;color:#4ade80;border-radius:4px;padding:2px 8px;font-size:.75rem;font-weight:600}
+
+  /* ── Settings accents ── */
+  .settings-dev h2{border-bottom-color:#0891b2}
+  .settings-dev h2::before{background:#0891b2}
+  .settings-prod h2{border-bottom-color:#059669}
+  .settings-prod h2::before{background:#059669}
+  .settings-dev th{background:#0c2a33;color:#67e8f9}
+  .settings-prod th{background:#052e16;color:#6ee7b7}
+  .settings-dev .table-wrap table{border:1px solid #164e63}
+  .settings-prod .table-wrap table{border:1px solid #064e3b}
+  .note-dev{background:#0c2a33;border-left:4px solid #0891b2;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:.88rem;color:#cffafe}
+  .note-prod{background:#052e16;border-left:4px solid #059669;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:.88rem;color:#d1fae5}
+
+  footer{text-align:center;padding:40px 24px 32px;color:#334155;font-size:.82rem;border-top:1px solid #1e293b;margin-top:60px}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LANGUAGE BAR ══════════ -->
+<div class="lang-bar">
+  <span>Language:</span>
+  <button class="lang-btn active" onclick="switchLang('en')">🇺🇸 English</button>
+  <button class="lang-btn" onclick="switchLang('uz')">🇺🇿 O'zbek</button>
+  <button class="lang-btn" onclick="switchLang('ko')">🇰🇷 한국어</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ENGLISH
+═══════════════════════════════════════════════════════════ -->
+<div id="lang-en" class="lang-section active">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">Project 3 · Developer Guide</div>
+    <h1><span>TaskPilot</span> — Developer Use Case Guide</h1>
+    <p>Everything you need to run, test, and explore the TaskPilot AI agent — from one-command Docker startup to live WebSocket inspection.</p>
+  </div>
+
+  <!-- ── Quick Start ── -->
+  <h2>Quick Start (Docker — Recommended)</h2>
+  <div class="qs-steps">
+    <div class="qs-step">
+      <div class="qs-num">1</div>
+      <div class="qs-body"><div class="title">Navigate to project directory</div><div class="sub"><code>cd project-3-ai-agent-taskpilot</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">2</div>
+      <div class="qs-body"><div class="title">Set API key (optional — rule-based mode works without it)</div><div class="sub"><code>export OPENAI_API_KEY=sk-your-key-here</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">3</div>
+      <div class="qs-body"><div class="title">Build and start all 4 services</div><div class="sub"><code>docker compose up --build</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">4</div>
+      <div class="qs-body"><div class="title">Open in browser and explore</div><div class="sub">See URLs below — everything is live within 60–90 seconds</div></div>
+    </div>
+  </div>
+
+  <div class="url-grid">
+    <div class="url-card"><div class="service">Web App</div><div class="url"><a href="http://localhost:3002">http://localhost:3002</a></div></div>
+    <div class="url-card"><div class="service">Backend / Swagger</div><div class="url"><a href="http://localhost:5002/swagger">http://localhost:5002/swagger</a></div></div>
+    <div class="url-card"><div class="service">Agent Core / Docs</div><div class="url"><a href="http://localhost:8001/docs">http://localhost:8001/docs</a></div></div>
+    <div class="url-card"><div class="service">Mobile (Expo)</div><div class="url"><a href="http://localhost:19006">http://localhost:19006</a></div></div>
+  </div>
+
+  <!-- ── Local Dev Setup ── -->
+  <h2>Local Development Setup (4 Layers)</h2>
+  <p style="color:#94a3b8;font-size:.9rem;margin-bottom:16px">Run each layer in a separate terminal tab. Start Agent Core first, then Backend, then Frontend.</p>
+  <div class="layer-list">
+    <div class="layer-item">
+      <div class="layer-label">Layer 1</div>
+      <div class="layer-title">Agent Core (Python FastAPI)</div>
+      <pre>cd agent-core
+python3 -m venv venv
+source venv/bin/activate          <span class="comment"># Windows: venv\Scripts\activate</span>
+pip install -r requirements.txt
+uvicorn main:app --port 8001 --reload</pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">Layer 2</div>
+      <div class="layer-title">Backend (.NET 8 API)</div>
+      <pre>cd backend
+dotnet run                        <span class="comment"># Starts on port 5002, auto-seeds SQLite DB</span></pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">Layer 3</div>
+      <div class="layer-title">Frontend (Next.js 14)</div>
+      <pre>cd frontend
+npm install
+npm run dev                       <span class="comment"># Starts on port 3002</span></pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">Layer 4 (Optional)</div>
+      <div class="layer-title">Mobile (React Native / Expo)</div>
+      <pre>cd mobile
+npm install
+npx expo start                    <span class="comment"># Scan QR with Expo Go app on your phone</span></pre>
+    </div>
+  </div>
+
+  <!-- ── Testing the Agent via API ── -->
+  <h2>Testing the Agent via REST API</h2>
+  <pre><span class="comment"># Start a task (async — use WebSocket to stream events)</span>
+curl -X POST http://localhost:8001/agent/run \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"Triage all open bugs","project_id":"proj-001"}'
+
+<span class="comment"># Start a task (sync — blocks until complete, returns full result)</span>
+curl -X POST http://localhost:8001/agent/run-sync \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"Generate a weekly report","project_id":"proj-001"}'
+
+<span class="comment"># Check agent status</span>
+curl http://localhost:8001/agent/status
+
+<span class="comment"># Stop the running agent</span>
+curl -X POST http://localhost:8001/agent/stop
+
+<span class="comment"># List all available tools</span>
+curl http://localhost:8001/agent/tools
+
+<span class="comment"># Inspect all memory tiers</span>
+curl http://localhost:8001/agent/memory</pre>
+
+  <!-- ── 8 Use Cases ── -->
+  <h2>8 Quick Action Use Cases</h2>
+  <div class="uc-grid">
+    <div class="uc-card">
+      <div class="uc-num">1</div>
+      <div class="uc-title">Triage Bugs</div>
+      <div class="uc-inst">"Triage all open bugs"</div>
+      <ul class="uc-steps">
+        <li>Lists all open tasks from backend</li>
+        <li>Assigns priorities based on severity</li>
+        <li>Sends notification to team</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">2</div>
+      <div class="uc-title">Generate Weekly Report</div>
+      <div class="uc-inst">"Generate a weekly report"</div>
+      <ul class="uc-steps">
+        <li>Aggregates task metrics</li>
+        <li>Generates Markdown report</li>
+        <li>Stores in database</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">3</div>
+      <div class="uc-title">Daily Standup</div>
+      <div class="uc-inst">"Prepare daily standup"</div>
+      <ul class="uc-steps">
+        <li>Summarizes yesterday's progress</li>
+        <li>Identifies current blockers</li>
+        <li>Outlines today's plan</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">4</div>
+      <div class="uc-title">Assign Tasks</div>
+      <div class="uc-inst">"Assign unassigned tasks"</div>
+      <ul class="uc-steps">
+        <li>Finds all unassigned tasks</li>
+        <li>Distributes to team members</li>
+        <li>Updates backend records</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">5</div>
+      <div class="uc-title">Code Analysis</div>
+      <div class="uc-inst">"Analyze the codebase"</div>
+      <ul class="uc-steps">
+        <li>Scans all 4 service scopes</li>
+        <li>Returns issues by severity</li>
+        <li>Provides fix suggestions</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">6</div>
+      <div class="uc-title">Status Report</div>
+      <div class="uc-inst">"Generate status report"</div>
+      <ul class="uc-steps">
+        <li>Reads current task states</li>
+        <li>Calculates completion metrics</li>
+        <li>Generates status Markdown</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">7</div>
+      <div class="uc-title">Check Blocked Tasks</div>
+      <div class="uc-inst">"Check blocked tasks"</div>
+      <ul class="uc-steps">
+        <li>Filters tasks with BLOCKED status</li>
+        <li>Analyzes blocking issues</li>
+        <li>Suggests unblocking actions</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">8</div>
+      <div class="uc-title">Sprint Review</div>
+      <div class="uc-inst">"Generate sprint review"</div>
+      <ul class="uc-steps">
+        <li>Counts completed vs planned tasks</li>
+        <li>Calculates velocity metrics</li>
+        <li>Generates sprint summary report</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Observing ReAct loop ── -->
+  <h2>Observing the ReAct Loop in Real Time</h2>
+  <div class="card">
+    <h4>Web Chat Page — Color-Coded Phase Visualization</h4>
+    <div class="phase-legend">
+      <span class="ph thinking">Amber = Thinking (Reasoning)</span>
+      <span class="ph planning">Violet = Planning</span>
+      <span class="ph acting">Blue = Acting (Tool calls)</span>
+      <span class="ph observing">Emerald = Observing</span>
+    </div>
+    <p style="font-size:.85rem;color:#94a3b8;margin-top:10px">Each phase bubble appears in real time as the agent transitions through the ReAct loop. Click any step to expand and see full tool arguments and results.</p>
+  </div>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>Dashboard — Action Timeline</h4>
+      <p style="font-size:.83rem;color:#64748b">Shows tool names, arguments, and success/failure status for every action the agent takes during a session. Updates live via SignalR.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Raw WebSocket Stream</h4>
+      <p style="font-size:.83rem;color:#64748b">Connect to <code>ws://localhost:8001/agent/stream</code> for raw JSON events: state_change, thought, plan, action, observation, complete, error, heartbeat.</p>
+    </div>
+  </div>
+
+  <!-- ── Kanban Board ── -->
+  <h2>Kanban Board (Tasks Page)</h2>
+  <div class="kanban-cols">
+    <div class="k-col todo">
+      <div class="k-title">To Do</div>
+      <div class="k-task">Fix login validation bug</div>
+      <div class="k-task">Add export feature</div>
+    </div>
+    <div class="k-col inprog">
+      <div class="k-title">In Progress</div>
+      <div class="k-task">Implement search API</div>
+      <div class="k-task">Update dashboard UI</div>
+    </div>
+    <div class="k-col done">
+      <div class="k-title">Done</div>
+      <div class="k-task">Setup CI/CD pipeline</div>
+      <div class="k-task">Database migration v2</div>
+    </div>
+    <div class="k-col blocked">
+      <div class="k-title">Blocked</div>
+      <div class="k-task">Mobile push notifications</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>Drag tasks between columns to update status (updates .NET backend immediately)</li>
+      <li>Add new tasks with priority selector (Critical / High / Medium / Low)</li>
+      <li>Click the delete icon on any task card to remove it</li>
+      <li>Task changes are reflected in agent's TaskManagerTool on next run</li>
+    </ul>
+  </div>
+
+  <!-- ── Memory Viewer ── -->
+  <h2>Memory Viewer (Memory Page)</h2>
+  <div class="mem-tabs">
+    <div class="mem-tab short">Short-Term (recent 20)</div>
+    <div class="mem-tab working">Working (active task)</div>
+    <div class="mem-tab long">Long-Term (persistent patterns)</div>
+  </div>
+  <div class="card">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>Short-Term tab: last 20 interactions, sorted by recency. FIFO — oldest drops when capacity is reached.</li>
+      <li>Working tab: active task context in "Action: X → Result: Y" format. Cleared when agent completes a task.</li>
+      <li>Long-Term tab: persistent patterns with relevance scores from cosine similarity. Up to 500 entries with LRU eviction.</li>
+      <li>Add, edit, or delete memory entries manually from any tab.</li>
+      <li>Relevance scores shown next to each entry indicate retrieval priority.</li>
+    </ul>
+  </div>
+
+  <!-- ── Reports ── -->
+  <h2>Reports (Reports Page)</h2>
+  <div class="report-types">
+    <span class="rt">Status</span>
+    <span class="rt">Daily</span>
+    <span class="rt">Weekly</span>
+    <span class="rt">Standup</span>
+    <span class="rt">Sprint</span>
+  </div>
+  <div class="card">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>Select a report type from the dropdown and click <strong>Generate</strong> — triggers the ReportGeneratorTool via the agent.</li>
+      <li>Reports are stored as Markdown in the SQLite database and listed in the sidebar.</li>
+      <li>Click any report to view it rendered with the custom Markdown renderer (headers, tables, code blocks, lists).</li>
+      <li>Reports include: task completion metrics, open bugs count, team velocity, blockers, and action items.</li>
+    </ul>
+  </div>
+
+  <!-- ── Swagger API Explorer ── -->
+  <h2>Swagger API Explorer</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>.NET Backend — http://localhost:5002/swagger</h4>
+      <ul style="font-size:.82rem;color:#64748b;padding-left:16px;margin-top:6px">
+        <li>GET/POST/PUT/DELETE <code>/api/tasks</code></li>
+        <li>GET/POST <code>/api/projects</code></li>
+        <li>GET <code>/api/agent/sessions</code></li>
+        <li>GET <code>/api/reports</code></li>
+        <li>GET <code>/api/memories</code></li>
+      </ul>
+    </div>
+    <div class="card-sm">
+      <h4>Agent Core — http://localhost:8001/docs</h4>
+      <ul style="font-size:.82rem;color:#64748b;padding-left:16px;margin-top:6px">
+        <li>POST <code>/agent/run</code> (async)</li>
+        <li>POST <code>/agent/run-sync</code> (blocking)</li>
+        <li>GET <code>/agent/status</code></li>
+        <li>POST <code>/agent/stop</code></li>
+        <li>GET <code>/agent/tools</code></li>
+        <li>GET <code>/agent/memory</code></li>
+        <li>WS <code>/agent/stream</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       REQUIRED SETTINGS — English
+  ════════════════════════════════ -->
+  <div class="settings-dev">
+    <h2>Required Settings — Development Mode</h2>
+    <div class="note-dev">The agent works fully in <strong>rule-based mode without any API key</strong>. All 5 tools are functional. <code>OPENAI_API_KEY</code> is optional and only adds LLM-powered natural language reasoning.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Setting</th><th>Where to Set</th><th>How to Get / Value</th><th>Required?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>Agent Core <code>.env</code> or shell</td><td>Sign up at <a href="https://platform.openai.com">platform.openai.com</a> → API Keys → Create new. Free tier: $5 credit. GPT-4o-mini costs $0.15/1M input tokens.</td><td><span class="badge-opt">Optional</span></td></tr>
+          <tr><td><code>DOTNET_API_URL</code></td><td>Agent Core <code>.env</code></td><td><code>http://localhost:5002</code> — agent calls .NET backend for real task data</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:5002</code> — frontend connects to .NET backend</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_AGENT_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:8001</code> — frontend connects to Agent Core</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>AgentCore__BaseUrl</code></td><td>Backend <code>appsettings.json</code></td><td><code>http://localhost:8001</code> — .NET backend calls Agent Core</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td>Backend <code>appsettings.json</code></td><td><code>Data Source=taskpilot.db</code> — SQLite file path (auto-created with seed data)</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td>Backend shell / <code>launchSettings.json</code></td><td><code>Development</code></td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>AGENT_PORT</code></td><td>Agent Core shell / <code>.env</code></td><td><code>8001</code> — Python FastAPI port</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Mobile <code>API_URL</code></td><td><code>mobile/constants.ts</code></td><td><code>http://localhost:5002</code> — optional, only if using the Expo mobile app</td><td><span class="badge-opt">Optional</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-dev">
+      <strong>Without OPENAI_API_KEY:</strong> Agent uses rule-based mode — all 5 tools work, keyword routing handles all built-in workflows.<br>
+      <strong>With OPENAI_API_KEY:</strong> Agent uses GPT-4o-mini for reasoning — enhanced natural language understanding and dynamic tool selection.<br>
+      <strong>SQLite:</strong> Auto-created and seeded with 1 project + 8 tasks on first backend startup.
+    </div>
+  </div>
+
+  <div class="settings-prod">
+    <h2>Required Settings — Production (Free Tier)</h2>
+    <div class="note-prod">All services listed below have <strong>free tiers sufficient for a portfolio demo</strong>. Staying in rule-based mode means $0 LLM cost forever.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Setting / Service</th><th>Free Option</th><th>Notes</th><th>Required?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI free $5 credit, or Groq Cloud free tier</td><td>For Groq free: set <code>OPENAI_BASE_URL=https://api.groq.com/openai/v1</code> and <code>OPENAI_MODEL=llama3-8b-8192</code> in planner.py. Completely free. Or stay rule-based ($0).</td><td><span class="badge-opt">Optional</span></td></tr>
+          <tr><td>Backend + Agent Hosting</td><td>Railway free · Fly.io (3 VMs) · Render free · Oracle Cloud Always Free VM</td><td>.NET needs ~512 MB RAM. Python agent may need 512 MB+. Oracle Always Free gives 4 GB ARM VM — ideal for both.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Frontend Hosting</td><td>Vercel free tier · Netlify free tier</td><td>Vercel is the perfect fit for Next.js. Set env vars in Vercel project settings.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Mobile App</td><td>Expo Go (dev) · Expo EAS Build free (30 builds/month)</td><td>Use Expo Go for demos. EAS Build for production APK/IPA.</td><td><span class="badge-opt">Optional</span></td></tr>
+          <tr><td>Database</td><td>SQLite (any single server) · Supabase free PostgreSQL</td><td>SQLite works on any single-instance host. Supabase if you need a managed DB.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>SignalR / WebSockets</td><td>Any host supporting WebSockets</td><td><strong>Note:</strong> Vercel Edge does NOT support WebSockets. Use Railway/Fly.io/Render for .NET backend.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Docker Compose on VPS</td><td>DigitalOcean $4/mo (512 MB) · Oracle Cloud Always Free (4 GB ARM)</td><td>Run all 4 services with Docker Compose on a single VPS. Oracle is the best zero-cost option.</td><td><span class="badge-opt">Optional</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /lang-en -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     O'ZBEK
+═══════════════════════════════════════════════════════════ -->
+<div id="lang-uz" class="lang-section">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">Loyiha 3 · Dasturchi Qo'llanmasi</div>
+    <h1><span>TaskPilot</span> — Dasturchi Foydalanish Holatlari Qo'llanmasi</h1>
+    <p>TaskPilot AI agentini ishga tushirish, sinash va o'rganish uchun kerak bo'lgan hamma narsa — Docker orqali bir buyruqdan jonli WebSocket tekshiruvigacha.</p>
+  </div>
+
+  <!-- ── Tezkor Ishga Tushirish ── -->
+  <h2>Tezkor Ishga Tushirish (Docker — Tavsiya Etiladi)</h2>
+  <div class="qs-steps">
+    <div class="qs-step">
+      <div class="qs-num">1</div>
+      <div class="qs-body"><div class="title">Loyiha papkasiga o'ting</div><div class="sub"><code>cd project-3-ai-agent-taskpilot</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">2</div>
+      <div class="qs-body"><div class="title">API kalitini o'rnating (ixtiyoriy — qoida asosidagi rejim usiz ishlaydi)</div><div class="sub"><code>export OPENAI_API_KEY=sk-your-key-here</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">3</div>
+      <div class="qs-body"><div class="title">Barcha 4 xizmatni yarating va ishga tushiring</div><div class="sub"><code>docker compose up --build</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">4</div>
+      <div class="qs-body"><div class="title">Brauzerda oching va o'rganing</div><div class="sub">Quyidagi URL larni ko'ring — hamma narsa 60–90 soniya ichida tayyor</div></div>
+    </div>
+  </div>
+
+  <div class="url-grid">
+    <div class="url-card"><div class="service">Veb Ilova</div><div class="url"><a href="http://localhost:3002">http://localhost:3002</a></div></div>
+    <div class="url-card"><div class="service">Backend / Swagger</div><div class="url"><a href="http://localhost:5002/swagger">http://localhost:5002/swagger</a></div></div>
+    <div class="url-card"><div class="service">Agent Yadrosi / Docs</div><div class="url"><a href="http://localhost:8001/docs">http://localhost:8001/docs</a></div></div>
+    <div class="url-card"><div class="service">Mobil (Expo)</div><div class="url"><a href="http://localhost:19006">http://localhost:19006</a></div></div>
+  </div>
+
+  <!-- ── Mahalliy Ishlab Chiqish ── -->
+  <h2>Mahalliy Ishlab Chiqish Sozlamasi (4 Qatlam)</h2>
+  <p style="color:#94a3b8;font-size:.9rem;margin-bottom:16px">Har bir qatlamni alohida terminal yorlig'ida ishga tushiring. Avval Agent Yadrosi, keyin Backend, keyin Frontend ni ishga tushiring.</p>
+  <div class="layer-list">
+    <div class="layer-item">
+      <div class="layer-label">1-qatlam</div>
+      <div class="layer-title">Agent Yadrosi (Python FastAPI)</div>
+      <pre>cd agent-core
+python3 -m venv venv
+source venv/bin/activate          <span class="comment"># Windows: venv\Scripts\activate</span>
+pip install -r requirements.txt
+uvicorn main:app --port 8001 --reload</pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">2-qatlam</div>
+      <div class="layer-title">Backend (.NET 8 API)</div>
+      <pre>cd backend
+dotnet run                        <span class="comment"># 5002-portda ishga tushadi, SQLite DB ni avtomatik to'ldiradi</span></pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">3-qatlam</div>
+      <div class="layer-title">Frontend (Next.js 14)</div>
+      <pre>cd frontend
+npm install
+npm run dev                       <span class="comment"># 3002-portda ishga tushadi</span></pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">4-qatlam (Ixtiyoriy)</div>
+      <div class="layer-title">Mobil (React Native / Expo)</div>
+      <pre>cd mobile
+npm install
+npx expo start                    <span class="comment"># Telefoningizda Expo Go ilovasi bilan QR ni skaner qiling</span></pre>
+    </div>
+  </div>
+
+  <!-- ── REST API orqali Sinash ── -->
+  <h2>REST API orqali Agentni Sinash</h2>
+  <pre><span class="comment"># Vazifani boshlash (async — hodisalarni oqim qilish uchun WebSocket dan foydalaning)</span>
+curl -X POST http://localhost:8001/agent/run \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"Triage all open bugs","project_id":"proj-001"}'
+
+<span class="comment"># Vazifani boshlash (sync — tugaguncha kutadi, to'liq natijani qaytaradi)</span>
+curl -X POST http://localhost:8001/agent/run-sync \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"Generate a weekly report","project_id":"proj-001"}'
+
+<span class="comment"># Agent holatini tekshirish</span>
+curl http://localhost:8001/agent/status
+
+<span class="comment"># Ishlayotgan agentni to'xtatish</span>
+curl -X POST http://localhost:8001/agent/stop
+
+<span class="comment"># Barcha mavjud vositalarni ko'rish</span>
+curl http://localhost:8001/agent/tools
+
+<span class="comment"># Barcha xotira qatlamlarini tekshirish</span>
+curl http://localhost:8001/agent/memory</pre>
+
+  <!-- ── 8 ta Foydalanish Holati ── -->
+  <h2>8 ta Tezkor Foydalanish Holati</h2>
+  <div class="uc-grid">
+    <div class="uc-card">
+      <div class="uc-num">1</div>
+      <div class="uc-title">Xatolarni Triage Qilish</div>
+      <div class="uc-inst">"Triage all open bugs"</div>
+      <ul class="uc-steps">
+        <li>Backenddan barcha ochiq vazifalarni ro'yxatlaydi</li>
+        <li>Jiddiylik asosida ustuvorliklarni belgilaydi</li>
+        <li>Jamoaga bildirishnoma yuboradi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">2</div>
+      <div class="uc-title">Haftalik Hisobot Yaratish</div>
+      <div class="uc-inst">"Generate a weekly report"</div>
+      <ul class="uc-steps">
+        <li>Vazifa metrikalarini jamlaydi</li>
+        <li>Markdown hisobot yaratadi</li>
+        <li>Ma'lumotlar bazasida saqlaydi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">3</div>
+      <div class="uc-title">Kundalik Standup</div>
+      <div class="uc-inst">"Prepare daily standup"</div>
+      <ul class="uc-steps">
+        <li>Kechagi natijalarni xulosalaydi</li>
+        <li>Joriy blokerlarni aniqlaydi</li>
+        <li>Bugungi rejani belgilaydi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">4</div>
+      <div class="uc-title">Vazifalarni Taqsimlash</div>
+      <div class="uc-inst">"Assign unassigned tasks"</div>
+      <ul class="uc-steps">
+        <li>Barcha tayinlanmagan vazifalarni topadi</li>
+        <li>Jamoa a'zolariga taqsimlaydi</li>
+        <li>Backend yozuvlarini yangilaydi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">5</div>
+      <div class="uc-title">Kod Tahlili</div>
+      <div class="uc-inst">"Analyze the codebase"</div>
+      <ul class="uc-steps">
+        <li>Barcha 4 xizmat qamrovini skanerlaydi</li>
+        <li>Jiddiylik bo'yicha muammolarni qaytaradi</li>
+        <li>Tuzatish takliflarini beradi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">6</div>
+      <div class="uc-title">Holat Hisoboti</div>
+      <div class="uc-inst">"Generate status report"</div>
+      <ul class="uc-steps">
+        <li>Joriy vazifa holatlarini o'qiydi</li>
+        <li>Bajarilish metrikalarini hisoblaydi</li>
+        <li>Holat Markdown ini yaratadi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">7</div>
+      <div class="uc-title">Bloklangan Vazifalarni Tekshirish</div>
+      <div class="uc-inst">"Check blocked tasks"</div>
+      <ul class="uc-steps">
+        <li>BLOKLANGAN holat bilan vazifalarni filtrlaydi</li>
+        <li>Bloklash muammolarini tahlil qiladi</li>
+        <li>Blokirovkani olib tashlash harakatlarini taklif qiladi</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">8</div>
+      <div class="uc-title">Sprint Ko'rib Chiqish</div>
+      <div class="uc-inst">"Generate sprint review"</div>
+      <ul class="uc-steps">
+        <li>Bajarilgan va rejalashtirilgan vazifalarni hisoblaydi</li>
+        <li>Tezlik metrikalarini hisoblaydi</li>
+        <li>Sprint xulosasi hisobotini yaratadi</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── ReAct Tsiklini Kuzatish ── -->
+  <h2>ReAct Tsiklini Real Vaqtda Kuzatish</h2>
+  <div class="card">
+    <h4>Veb Chat Sahifasi — Rang Kodlangan Bosqich Vizualizatsiyasi</h4>
+    <div class="phase-legend">
+      <span class="ph thinking">Sariq = Fikrlash (Mulohaza)</span>
+      <span class="ph planning">Binafsha = Rejalashtirish</span>
+      <span class="ph acting">Ko'k = Harakat (Vosita chaqiruvlari)</span>
+      <span class="ph observing">Yashil = Kuzatish</span>
+    </div>
+    <p style="font-size:.85rem;color:#94a3b8;margin-top:10px">Agent ReAct tsikli bo'ylab o'tishi bilan har bir bosqich pufagi real vaqtda paydo bo'ladi. To'liq vosita argumentlari va natijalarini ko'rish uchun har qanday qadamni bosing.</p>
+  </div>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>Boshqaruv Paneli — Harakat Vaqt Jadvali</h4>
+      <p style="font-size:.83rem;color:#64748b">Sessiya davomida agent amalga oshirgan har bir harakat uchun vosita nomlari, argumentlar va muvaffaqiyat/muvaffaqiyatsizlik holatini ko'rsatadi. SignalR orqali jonli yangilanadi.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Xom WebSocket Oqimi</h4>
+      <p style="font-size:.83rem;color:#64748b">Xom JSON hodisalari uchun <code>ws://localhost:8001/agent/stream</code> ga ulaning: state_change, thought, plan, action, observation, complete, error, heartbeat.</p>
+    </div>
+  </div>
+
+  <!-- ── Kanban Taxtasi ── -->
+  <h2>Kanban Taxtasi (Vazifalar Sahifasi)</h2>
+  <div class="kanban-cols">
+    <div class="k-col todo">
+      <div class="k-title">Bajarilishi Kerak</div>
+      <div class="k-task">Login validatsiyasidagi xatoni tuzatish</div>
+      <div class="k-task">Eksport funksiyasini qo'shish</div>
+    </div>
+    <div class="k-col inprog">
+      <div class="k-title">Jarayonda</div>
+      <div class="k-task">Qidiruv API sini amalga oshirish</div>
+      <div class="k-task">Dashboard UI ni yangilash</div>
+    </div>
+    <div class="k-col done">
+      <div class="k-title">Bajarildi</div>
+      <div class="k-task">CI/CD quvurini o'rnatish</div>
+      <div class="k-task">Ma'lumotlar bazasi migratsiyasi v2</div>
+    </div>
+    <div class="k-col blocked">
+      <div class="k-title">Bloklangan</div>
+      <div class="k-task">Mobil push bildirishnomalar</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>Holatni yangilash uchun vazifalarni ustunlar orasida sudrang (darhol .NET backendini yangilaydi)</li>
+      <li>Ustuvorlik tanlash bilan yangi vazifalar qo'shing (Kritik / Yuqori / O'rta / Past)</li>
+      <li>O'chirish uchun istalgan vazifa kartasidagi o'chirish belgisini bosing</li>
+      <li>Vazifa o'zgarishlari keyingi ishga tushirishda agentning TaskManagerTool da aks etadi</li>
+    </ul>
+  </div>
+
+  <!-- ── Xotira Ko'ruvchi ── -->
+  <h2>Xotira Ko'ruvchi (Xotira Sahifasi)</h2>
+  <div class="mem-tabs">
+    <div class="mem-tab short">Qisqa Muddatli (so'nggi 20)</div>
+    <div class="mem-tab working">Ish Xotirasi (faol vazifa)</div>
+    <div class="mem-tab long">Uzoq Muddatli (doimiy naqshlar)</div>
+  </div>
+  <div class="card">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>Qisqa Muddatli yorlig'i: so'nggi 20 ta o'zaro ta'sir, yangilik bo'yicha tartiblangan. FIFO — hajmga yetganda eng eski tushib qoladi.</li>
+      <li>Ish yorlig'i: "Harakat: X → Natija: Y" formatida faol vazifa konteksti. Agent vazifani bajarganida tozalanadi.</li>
+      <li>Uzoq Muddatli yorlig'i: cosinus o'xshashligi bo'yicha aloqadorlik ballari bilan doimiy naqshlar. LRU ko'chirish bilan 500 tagacha yozuv.</li>
+      <li>Istalgan yorliqdan xotira yozuvlarini qo'lda qo'shing, tahrirlang yoki o'chiring.</li>
+      <li>Har bir yozuv yonida ko'rsatilgan aloqadorlik ballari qidiruv ustuvorligini ko'rsatadi.</li>
+    </ul>
+  </div>
+
+  <!-- ── Hisobotlar ── -->
+  <h2>Hisobotlar (Hisobotlar Sahifasi)</h2>
+  <div class="report-types">
+    <span class="rt">Holat</span>
+    <span class="rt">Kundalik</span>
+    <span class="rt">Haftalik</span>
+    <span class="rt">Standup</span>
+    <span class="rt">Sprint</span>
+  </div>
+  <div class="card">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>Ro'yxatdan hisobot turini tanlang va <strong>Yaratish</strong> tugmasini bosing — agent orqali ReportGeneratorTool ni ishga tushiradi.</li>
+      <li>Hisobotlar SQLite ma'lumotlar bazasida Markdown sifatida saqlanadi va yon panelda ro'yxatlanadi.</li>
+      <li>Maxsus Markdown renderi bilan ko'rsatish uchun istalgan hisobotni bosing (sarlavhalar, jadvallar, kod bloklari, ro'yxatlar).</li>
+      <li>Hisobotlarga quyidagilar kiritilgan: vazifa bajarish metrikasi, ochiq xatolar soni, jamoa tezligi, blokerlar va harakatlar ro'yxati.</li>
+    </ul>
+  </div>
+
+  <!-- ── Swagger API ── -->
+  <h2>Swagger API Tadqiqotchisi</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>.NET Backend — http://localhost:5002/swagger</h4>
+      <ul style="font-size:.82rem;color:#64748b;padding-left:16px;margin-top:6px">
+        <li>GET/POST/PUT/DELETE <code>/api/tasks</code></li>
+        <li>GET/POST <code>/api/projects</code></li>
+        <li>GET <code>/api/agent/sessions</code></li>
+        <li>GET <code>/api/reports</code></li>
+        <li>GET <code>/api/memories</code></li>
+      </ul>
+    </div>
+    <div class="card-sm">
+      <h4>Agent Yadrosi — http://localhost:8001/docs</h4>
+      <ul style="font-size:.82rem;color:#64748b;padding-left:16px;margin-top:6px">
+        <li>POST <code>/agent/run</code> (async)</li>
+        <li>POST <code>/agent/run-sync</code> (blokirovka)</li>
+        <li>GET <code>/agent/status</code></li>
+        <li>POST <code>/agent/stop</code></li>
+        <li>GET <code>/agent/tools</code></li>
+        <li>GET <code>/agent/memory</code></li>
+        <li>WS <code>/agent/stream</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       TALAB QILINADIGAN SOZLAMALAR — O'zbek
+  ════════════════════════════════ -->
+  <div class="settings-dev">
+    <h2>Talab Qilinadigan Sozlamalar — Ishlab Chiqish Rejimi</h2>
+    <div class="note-dev">Agent <strong>hech qanday API kalitisiz qoida asosidagi rejimda</strong> to'liq ishlaydi. Barcha 5 ta vosita faoldir. <code>OPENAI_API_KEY</code> ixtiyoriy bo'lib, faqat LLM tomonidan quvvatlangan tabiiy til fikrlashini qo'shadi.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sozlama Nomi</th><th>Qayerda O'rnatish</th><th>Qanday Olish / Qiymat</th><th>Talab?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>Agent Yadrosi <code>.env</code> yoki shell</td><td><a href="https://platform.openai.com">platform.openai.com</a> ga ro'yxatdan o'ting → API Kalitlari → Yangi yaratish. Bepul daraja: $5 kredit. GPT-4o-mini kirish uchun $0.15/1M token.</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+          <tr><td><code>DOTNET_API_URL</code></td><td>Agent Yadrosi <code>.env</code></td><td><code>http://localhost:5002</code> — agent haqiqiy vazifa ma'lumotlari uchun .NET backendga murojaat qiladi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:5002</code> — frontend .NET backendga ulanadi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_AGENT_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:8001</code> — frontend Agent Yadrosi ga ulanadi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>AgentCore__BaseUrl</code></td><td>Backend <code>appsettings.json</code></td><td><code>http://localhost:8001</code> — .NET backend Agent Yadrosi ga murojaat qiladi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td>Backend <code>appsettings.json</code></td><td><code>Data Source=taskpilot.db</code> — SQLite fayl yo'li (ekish ma'lumotlari bilan avtomatik yaratiladi)</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td>Backend shell / <code>launchSettings.json</code></td><td><code>Development</code></td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>AGENT_PORT</code></td><td>Agent Yadrosi shell / <code>.env</code></td><td><code>8001</code> — Python FastAPI porti</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>Mobil <code>API_URL</code></td><td><code>mobile/constants.ts</code></td><td><code>http://localhost:5002</code> — ixtiyoriy, faqat Expo mobil ilovasi ishlatilganda</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-dev">
+      <strong>OPENAI_API_KEY siz:</strong> Agent qoida asosidagi rejimni ishlatadi — barcha 5 ta vosita ishlaydi, kalit so'z yo'naltirish barcha o'rnatilgan ish oqimlarini boshqaradi.<br>
+      <strong>OPENAI_API_KEY bilan:</strong> Agent fikrlash uchun GPT-4o-mini dan foydalanadi — yaxshilangan tabiiy til tushunish va dinamik vosita tanlash.<br>
+      <strong>SQLite:</strong> Birinchi backend ishga tushirishda 1 loyiha + 8 vazifa bilan avtomatik yaratiladi va ekiladi.
+    </div>
+  </div>
+
+  <div class="settings-prod">
+    <h2>Talab Qilinadigan Sozlamalar — Ishlab Chiqarish (Bepul Daraja)</h2>
+    <div class="note-prod">Quyida ro'yxatga olingan barcha xizmatlar <strong>portfolio namoyishi uchun yetarli bepul daraja</strong> ga ega. Qoida asosidagi rejimda qolish LLM xarajatlarini abadiy $0 ga tushiradi.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sozlama / Xizmat</th><th>Bepul Variant</th><th>Izohlar</th><th>Talab?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI bepul $5 kredit, yoki Groq Cloud bepul daraja</td><td>Groq bepul uchun: planner.py da <code>OPENAI_BASE_URL=https://api.groq.com/openai/v1</code> va <code>OPENAI_MODEL=llama3-8b-8192</code> ni o'rnating. Mutlaqo bepul. Yoki qoida asosida qoling ($0).</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+          <tr><td>Backend + Agent Hosting</td><td>Railway bepul · Fly.io (3 VM) · Render bepul · Oracle Cloud Doim Bepul VM</td><td>.NET taxminan 512 MB RAM talab qiladi. Python agenti 512 MB+ kerak bo'lishi mumkin. Oracle Doim Bepul 4 GB ARM VM beradi.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>Frontend Hosting</td><td>Vercel bepul daraja · Netlify bepul daraja</td><td>Vercel Next.js uchun mukammal tanlov. Muhit o'zgaruvchilarini Vercel loyiha sozlamalarida o'rnating.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>Mobil Ilova</td><td>Expo Go (ishlab chiqish) · Expo EAS Build bepul (oyiga 30 build)</td><td>Namoyish uchun Expo Go dan foydalaning. Ishlab chiqarish APK/IPA uchun EAS Build.</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+          <tr><td>Ma'lumotlar Bazasi</td><td>SQLite (har qanday bitta server) · Supabase bepul PostgreSQL</td><td>SQLite har qanday bitta nusxa hostda ishlaydi. Boshqariladigan DB kerak bo'lsa Supabase.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>SignalR / WebSocket'lar</td><td>WebSocket larni qo'llab-quvvatlovchi har qanday host</td><td><strong>Eslatma:</strong> Vercel Edge WebSocket larni qo'llab-quvvatlamaydi. .NET backendni Railway, Fly.io yoki Render da joylashtiring.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>VPS da Docker Compose</td><td>DigitalOcean $4/oy (512 MB) · Oracle Cloud Doim Bepul (4 GB ARM)</td><td>Docker Compose bilan bitta VPS da barcha 4 xizmatni ishga tushiring. Oracle Doim Bepul eng yaxshi nol-xarajat variantidir.</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /lang-uz -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     한국어
+═══════════════════════════════════════════════════════════ -->
+<div id="lang-ko" class="lang-section">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">프로젝트 3 · 개발자 가이드</div>
+    <h1><span>TaskPilot</span> — 개발자 사용 사례 가이드</h1>
+    <p>Docker 원커맨드 시작부터 라이브 WebSocket 검사까지 — TaskPilot AI 에이전트를 실행, 테스트, 탐색하는 데 필요한 모든 것입니다.</p>
+  </div>
+
+  <!-- ── 빠른 시작 ── -->
+  <h2>빠른 시작 (Docker — 권장)</h2>
+  <div class="qs-steps">
+    <div class="qs-step">
+      <div class="qs-num">1</div>
+      <div class="qs-body"><div class="title">프로젝트 디렉토리로 이동합니다</div><div class="sub"><code>cd project-3-ai-agent-taskpilot</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">2</div>
+      <div class="qs-body"><div class="title">API 키 설정 (선택 — 규칙 기반 모드는 없어도 작동합니다)</div><div class="sub"><code>export OPENAI_API_KEY=sk-your-key-here</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">3</div>
+      <div class="qs-body"><div class="title">4개 서비스를 빌드하고 시작합니다</div><div class="sub"><code>docker compose up --build</code></div></div>
+    </div>
+    <div class="qs-step">
+      <div class="qs-num">4</div>
+      <div class="qs-body"><div class="title">브라우저에서 열고 탐색합니다</div><div class="sub">아래 URL을 확인하세요 — 60~90초 내에 모든 것이 준비됩니다</div></div>
+    </div>
+  </div>
+
+  <div class="url-grid">
+    <div class="url-card"><div class="service">웹 앱</div><div class="url"><a href="http://localhost:3002">http://localhost:3002</a></div></div>
+    <div class="url-card"><div class="service">백엔드 / Swagger</div><div class="url"><a href="http://localhost:5002/swagger">http://localhost:5002/swagger</a></div></div>
+    <div class="url-card"><div class="service">에이전트 코어 / Docs</div><div class="url"><a href="http://localhost:8001/docs">http://localhost:8001/docs</a></div></div>
+    <div class="url-card"><div class="service">모바일 (Expo)</div><div class="url"><a href="http://localhost:19006">http://localhost:19006</a></div></div>
+  </div>
+
+  <!-- ── 로컬 개발 설정 ── -->
+  <h2>로컬 개발 설정 (4개 레이어)</h2>
+  <p style="color:#94a3b8;font-size:.9rem;margin-bottom:16px">각 레이어를 별도의 터미널 탭에서 실행합니다. 에이전트 코어 먼저, 그 다음 백엔드, 그 다음 프론트엔드 순서로 시작합니다.</p>
+  <div class="layer-list">
+    <div class="layer-item">
+      <div class="layer-label">레이어 1</div>
+      <div class="layer-title">에이전트 코어 (Python FastAPI)</div>
+      <pre>cd agent-core
+python3 -m venv venv
+source venv/bin/activate          <span class="comment"># Windows: venv\Scripts\activate</span>
+pip install -r requirements.txt
+uvicorn main:app --port 8001 --reload</pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">레이어 2</div>
+      <div class="layer-title">백엔드 (.NET 8 API)</div>
+      <pre>cd backend
+dotnet run                        <span class="comment"># 포트 5002에서 시작, SQLite DB 자동 시드</span></pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">레이어 3</div>
+      <div class="layer-title">프론트엔드 (Next.js 14)</div>
+      <pre>cd frontend
+npm install
+npm run dev                       <span class="comment"># 포트 3002에서 시작</span></pre>
+    </div>
+    <div class="layer-item">
+      <div class="layer-label">레이어 4 (선택)</div>
+      <div class="layer-title">모바일 (React Native / Expo)</div>
+      <pre>cd mobile
+npm install
+npx expo start                    <span class="comment"># 휴대폰의 Expo Go 앱으로 QR 코드 스캔</span></pre>
+    </div>
+  </div>
+
+  <!-- ── REST API 테스트 ── -->
+  <h2>REST API를 통한 에이전트 테스트</h2>
+  <pre><span class="comment"># 작업 시작 (비동기 — 이벤트 스트리밍에는 WebSocket 사용)</span>
+curl -X POST http://localhost:8001/agent/run \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"Triage all open bugs","project_id":"proj-001"}'
+
+<span class="comment"># 작업 시작 (동기 — 완료될 때까지 대기, 전체 결과 반환)</span>
+curl -X POST http://localhost:8001/agent/run-sync \
+  -H "Content-Type: application/json" \
+  -d '{"instruction":"Generate a weekly report","project_id":"proj-001"}'
+
+<span class="comment"># 에이전트 상태 확인</span>
+curl http://localhost:8001/agent/status
+
+<span class="comment"># 실행 중인 에이전트 중지</span>
+curl -X POST http://localhost:8001/agent/stop
+
+<span class="comment"># 사용 가능한 모든 도구 나열</span>
+curl http://localhost:8001/agent/tools
+
+<span class="comment"># 모든 메모리 계층 검사</span>
+curl http://localhost:8001/agent/memory</pre>
+
+  <!-- ── 8가지 사용 사례 ── -->
+  <h2>8가지 빠른 액션 사용 사례</h2>
+  <div class="uc-grid">
+    <div class="uc-card">
+      <div class="uc-num">1</div>
+      <div class="uc-title">버그 분류</div>
+      <div class="uc-inst">"Triage all open bugs"</div>
+      <ul class="uc-steps">
+        <li>백엔드에서 모든 열린 작업을 나열합니다</li>
+        <li>심각도에 따라 우선순위를 할당합니다</li>
+        <li>팀에 알림을 보냅니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">2</div>
+      <div class="uc-title">주간 보고서 생성</div>
+      <div class="uc-inst">"Generate a weekly report"</div>
+      <ul class="uc-steps">
+        <li>작업 메트릭을 집계합니다</li>
+        <li>Markdown 보고서를 생성합니다</li>
+        <li>데이터베이스에 저장합니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">3</div>
+      <div class="uc-title">일일 스탠드업</div>
+      <div class="uc-inst">"Prepare daily standup"</div>
+      <ul class="uc-steps">
+        <li>어제의 진행 상황을 요약합니다</li>
+        <li>현재 차단 요소를 식별합니다</li>
+        <li>오늘의 계획을 작성합니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">4</div>
+      <div class="uc-title">작업 할당</div>
+      <div class="uc-inst">"Assign unassigned tasks"</div>
+      <ul class="uc-steps">
+        <li>모든 미할당 작업을 찾습니다</li>
+        <li>팀 구성원에게 배분합니다</li>
+        <li>백엔드 레코드를 업데이트합니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">5</div>
+      <div class="uc-title">코드 분석</div>
+      <div class="uc-inst">"Analyze the codebase"</div>
+      <ul class="uc-steps">
+        <li>4개 서비스 범위를 모두 스캔합니다</li>
+        <li>심각도별 이슈를 반환합니다</li>
+        <li>수정 제안을 제공합니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">6</div>
+      <div class="uc-title">상태 보고서</div>
+      <div class="uc-inst">"Generate status report"</div>
+      <ul class="uc-steps">
+        <li>현재 작업 상태를 읽습니다</li>
+        <li>완료 메트릭을 계산합니다</li>
+        <li>상태 Markdown을 생성합니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">7</div>
+      <div class="uc-title">차단된 작업 확인</div>
+      <div class="uc-inst">"Check blocked tasks"</div>
+      <ul class="uc-steps">
+        <li>BLOCKED 상태의 작업을 필터링합니다</li>
+        <li>차단 이슈를 분석합니다</li>
+        <li>차단 해제 액션을 제안합니다</li>
+      </ul>
+    </div>
+    <div class="uc-card">
+      <div class="uc-num">8</div>
+      <div class="uc-title">스프린트 리뷰</div>
+      <div class="uc-inst">"Generate sprint review"</div>
+      <ul class="uc-steps">
+        <li>완료된 작업 대 계획된 작업을 계산합니다</li>
+        <li>속도 메트릭을 계산합니다</li>
+        <li>스프린트 요약 보고서를 생성합니다</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── ReAct 루프 관찰 ── -->
+  <h2>실시간 ReAct 루프 관찰</h2>
+  <div class="card">
+    <h4>웹 채팅 페이지 — 색상으로 구분된 단계 시각화</h4>
+    <div class="phase-legend">
+      <span class="ph thinking">황색 = 추론 중 (사고)</span>
+      <span class="ph planning">보라색 = 계획 중</span>
+      <span class="ph acting">파란색 = 행동 중 (도구 호출)</span>
+      <span class="ph observing">녹색 = 관찰 중</span>
+    </div>
+    <p style="font-size:.85rem;color:#94a3b8;margin-top:10px">에이전트가 ReAct 루프를 통해 전환될 때 각 단계 버블이 실시간으로 나타납니다. 도구 인수 및 결과 전체를 보려면 단계를 클릭하세요.</p>
+  </div>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>대시보드 — 액션 타임라인</h4>
+      <p style="font-size:.83rem;color:#64748b">세션 중 에이전트가 수행하는 모든 작업에 대한 도구 이름, 인수, 성공/실패 상태를 표시합니다. SignalR을 통해 실시간으로 업데이트됩니다.</p>
+    </div>
+    <div class="card-sm">
+      <h4>원시 WebSocket 스트림</h4>
+      <p style="font-size:.83rem;color:#64748b">원시 JSON 이벤트를 위해 <code>ws://localhost:8001/agent/stream</code>에 연결합니다: state_change, thought, plan, action, observation, complete, error, heartbeat.</p>
+    </div>
+  </div>
+
+  <!-- ── 칸반 보드 ── -->
+  <h2>칸반 보드 (작업 페이지)</h2>
+  <div class="kanban-cols">
+    <div class="k-col todo">
+      <div class="k-title">할 일</div>
+      <div class="k-task">로그인 유효성 검사 버그 수정</div>
+      <div class="k-task">내보내기 기능 추가</div>
+    </div>
+    <div class="k-col inprog">
+      <div class="k-title">진행 중</div>
+      <div class="k-task">검색 API 구현</div>
+      <div class="k-task">대시보드 UI 업데이트</div>
+    </div>
+    <div class="k-col done">
+      <div class="k-title">완료</div>
+      <div class="k-task">CI/CD 파이프라인 설정</div>
+      <div class="k-task">데이터베이스 마이그레이션 v2</div>
+    </div>
+    <div class="k-col blocked">
+      <div class="k-title">차단됨</div>
+      <div class="k-task">모바일 푸시 알림</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>열 사이에서 작업을 드래그하여 상태를 업데이트합니다 (.NET 백엔드를 즉시 업데이트)</li>
+      <li>우선순위 선택기로 새 작업을 추가합니다 (긴급 / 높음 / 중간 / 낮음)</li>
+      <li>작업 카드의 삭제 아이콘을 클릭하여 제거합니다</li>
+      <li>작업 변경 사항은 다음 실행 시 에이전트의 TaskManagerTool에 반영됩니다</li>
+    </ul>
+  </div>
+
+  <!-- ── 메모리 뷰어 ── -->
+  <h2>메모리 뷰어 (메모리 페이지)</h2>
+  <div class="mem-tabs">
+    <div class="mem-tab short">단기 (최근 20개)</div>
+    <div class="mem-tab working">작업 메모리 (활성 작업)</div>
+    <div class="mem-tab long">장기 (지속적 패턴)</div>
+  </div>
+  <div class="card">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>단기 탭: 최근 20개 상호작용, 최신순 정렬. FIFO — 용량에 도달하면 가장 오래된 것이 제거됩니다.</li>
+      <li>작업 탭: "작업: X → 결과: Y" 형식의 활성 작업 컨텍스트. 에이전트가 작업을 완료하면 초기화됩니다.</li>
+      <li>장기 탭: 코사인 유사도 관련성 점수가 있는 지속적 패턴. LRU 제거로 최대 500개 항목.</li>
+      <li>어느 탭에서든 메모리 항목을 수동으로 추가, 편집 또는 삭제합니다.</li>
+      <li>각 항목 옆에 표시된 관련성 점수는 검색 우선순위를 나타냅니다.</li>
+    </ul>
+  </div>
+
+  <!-- ── 보고서 ── -->
+  <h2>보고서 (보고서 페이지)</h2>
+  <div class="report-types">
+    <span class="rt">상태</span>
+    <span class="rt">일간</span>
+    <span class="rt">주간</span>
+    <span class="rt">스탠드업</span>
+    <span class="rt">스프린트</span>
+  </div>
+  <div class="card">
+    <ul style="font-size:.85rem;color:#94a3b8;padding-left:16px">
+      <li>드롭다운에서 보고서 유형을 선택하고 <strong>생성</strong>을 클릭합니다 — 에이전트를 통해 ReportGeneratorTool을 트리거합니다.</li>
+      <li>보고서는 SQLite 데이터베이스에 Markdown으로 저장되고 사이드바에 나열됩니다.</li>
+      <li>맞춤 Markdown 렌더러(헤더, 표, 코드 블록, 목록)로 렌더링된 보고서를 보려면 클릭합니다.</li>
+      <li>보고서에는 작업 완료 메트릭, 열린 버그 수, 팀 속도, 차단 요소, 실행 항목이 포함됩니다.</li>
+    </ul>
+  </div>
+
+  <!-- ── Swagger ── -->
+  <h2>Swagger API 탐색기</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>.NET 백엔드 — http://localhost:5002/swagger</h4>
+      <ul style="font-size:.82rem;color:#64748b;padding-left:16px;margin-top:6px">
+        <li>GET/POST/PUT/DELETE <code>/api/tasks</code></li>
+        <li>GET/POST <code>/api/projects</code></li>
+        <li>GET <code>/api/agent/sessions</code></li>
+        <li>GET <code>/api/reports</code></li>
+        <li>GET <code>/api/memories</code></li>
+      </ul>
+    </div>
+    <div class="card-sm">
+      <h4>에이전트 코어 — http://localhost:8001/docs</h4>
+      <ul style="font-size:.82rem;color:#64748b;padding-left:16px;margin-top:6px">
+        <li>POST <code>/agent/run</code> (비동기)</li>
+        <li>POST <code>/agent/run-sync</code> (블로킹)</li>
+        <li>GET <code>/agent/status</code></li>
+        <li>POST <code>/agent/stop</code></li>
+        <li>GET <code>/agent/tools</code></li>
+        <li>GET <code>/agent/memory</code></li>
+        <li>WS <code>/agent/stream</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       필수 설정 — Korean
+  ════════════════════════════════ -->
+  <div class="settings-dev">
+    <h2>필수 설정 — 개발 모드</h2>
+    <div class="note-dev">에이전트는 <strong>API 키 없이도 규칙 기반 모드에서 완전히 작동합니다</strong>. 5개 도구가 모두 작동합니다. <code>OPENAI_API_KEY</code>는 선택 사항이며 LLM 기반 자연어 추론만 추가합니다.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>설정 이름</th><th>설정 위치</th><th>획득 방법 / 값</th><th>필수 여부</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>에이전트 코어 <code>.env</code> 또는 셸</td><td><a href="https://platform.openai.com">platform.openai.com</a>에 가입 → API 키 → 새로 만들기. 무료 등급: $5 크레딧. GPT-4o-mini 입력 1M 토큰당 $0.15.</td><td><span class="badge-opt">선택</span></td></tr>
+          <tr><td><code>DOTNET_API_URL</code></td><td>에이전트 코어 <code>.env</code></td><td><code>http://localhost:5002</code> — 에이전트가 실제 작업 데이터를 위해 .NET 백엔드를 호출합니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>프론트엔드 <code>.env.local</code></td><td><code>http://localhost:5002</code> — 프론트엔드가 .NET 백엔드에 연결됩니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_AGENT_URL</code></td><td>프론트엔드 <code>.env.local</code></td><td><code>http://localhost:8001</code> — 프론트엔드가 에이전트 코어에 직접 연결됩니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>AgentCore__BaseUrl</code></td><td>백엔드 <code>appsettings.json</code></td><td><code>http://localhost:8001</code> — .NET 백엔드가 에이전트 코어를 호출합니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td>백엔드 <code>appsettings.json</code></td><td><code>Data Source=taskpilot.db</code> — SQLite 파일 경로 (시드 데이터와 함께 자동 생성)</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td>백엔드 셸 / <code>launchSettings.json</code></td><td><code>Development</code></td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>AGENT_PORT</code></td><td>에이전트 코어 셸 / <code>.env</code></td><td><code>8001</code> — Python FastAPI 포트</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>모바일 <code>API_URL</code></td><td><code>mobile/constants.ts</code></td><td><code>http://localhost:5002</code> — 선택 사항, Expo 모바일 앱 사용 시에만</td><td><span class="badge-opt">선택</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-dev">
+      <strong>OPENAI_API_KEY 없이:</strong> 에이전트가 규칙 기반 모드를 사용합니다 — 5개 도구가 모두 작동하고, 키워드 라우팅이 모든 내장 워크플로우를 처리합니다.<br>
+      <strong>OPENAI_API_KEY 포함:</strong> 에이전트가 추론에 GPT-4o-mini를 사용합니다 — 향상된 자연어 이해 및 동적 도구 선택.<br>
+      <strong>SQLite:</strong> 첫 번째 백엔드 시작 시 1개 프로젝트 + 8개 작업이 자동으로 생성 및 시드됩니다.
+    </div>
+  </div>
+
+  <div class="settings-prod">
+    <h2>필수 설정 — 프로덕션 (무료 등급)</h2>
+    <div class="note-prod">아래에 나열된 모든 서비스는 <strong>포트폴리오 데모에 충분한 무료 등급</strong>을 제공합니다. 규칙 기반 모드를 유지하면 LLM 비용이 영원히 $0이 됩니다.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>설정 / 서비스</th><th>무료 옵션</th><th>참고사항</th><th>필수 여부</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI 무료 $5 크레딧, 또는 Groq Cloud 무료 등급</td><td>Groq 무료 사용: planner.py에 <code>OPENAI_BASE_URL=https://api.groq.com/openai/v1</code> 및 <code>OPENAI_MODEL=llama3-8b-8192</code>를 설정합니다. 완전 무료. 또는 규칙 기반으로 유지 ($0).</td><td><span class="badge-opt">선택</span></td></tr>
+          <tr><td>백엔드 + 에이전트 호스팅</td><td>Railway 무료 · Fly.io (3 VM) · Render 무료 · Oracle Cloud 항상 무료 VM</td><td>.NET은 약 512 MB RAM이 필요합니다. Python 에이전트는 512 MB+ 필요할 수 있습니다. Oracle 항상 무료는 4 GB ARM VM을 제공합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>프론트엔드 호스팅</td><td>Vercel 무료 등급 · Netlify 무료 등급</td><td>Vercel은 Next.js에 완벽합니다. Vercel 프로젝트 설정에서 환경 변수를 설정합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>모바일 앱</td><td>Expo Go (개발) · Expo EAS Build 무료 (월 30회 빌드)</td><td>데모에는 Expo Go를 사용합니다. 프로덕션 APK/IPA에는 EAS Build를 사용합니다.</td><td><span class="badge-opt">선택</span></td></tr>
+          <tr><td>데이터베이스</td><td>SQLite (단일 서버) · Supabase 무료 PostgreSQL</td><td>SQLite는 단일 인스턴스 호스트에서 작동합니다. 관리형 DB가 필요하면 Supabase를 사용합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>SignalR / WebSocket</td><td>WebSocket을 지원하는 모든 호스트</td><td><strong>참고:</strong> Vercel Edge는 WebSocket을 지원하지 않습니다. Railway, Fly.io 또는 Render에 .NET 백엔드를 호스팅합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>VPS의 Docker Compose</td><td>DigitalOcean $4/월 (512 MB) · Oracle Cloud 항상 무료 (4 GB ARM)</td><td>Docker Compose로 단일 VPS에서 4개 서비스를 모두 실행합니다. Oracle 항상 무료가 최고의 비용 제로 옵션입니다.</td><td><span class="badge-opt">선택</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /lang-ko -->
+
+<footer>
+  TaskPilot · Autonomous Project Management AI Agent · Portfolio Project 3
+</footer>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('.lang-section').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  document.getElementById('lang-' + lang).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

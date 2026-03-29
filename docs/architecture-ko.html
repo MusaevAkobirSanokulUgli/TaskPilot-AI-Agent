@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskPilot AI 에이전트 - 아키텍처 문서</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+        a { color: #10b981; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .hero {
+            background: linear-gradient(135deg, #0d2818 0%, #064e3b 30%, #0f172a 100%);
+            padding: 80px 40px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.4);
+            color: #6ee7b7;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #34d399, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            animation: shimmer 4s ease-in-out infinite;
+        }
+        @keyframes shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
+        .hero-tagline { font-size: 1.2rem; color: #94a3b8; max-width: 720px; margin: 0 auto 32px; }
+        .lang-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+        }
+        .stats-row { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin-top: 8px; }
+        .stat-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 24px; min-width: 110px; }
+        .stat-num { font-size: 1.6rem; font-weight: 800; color: #34d399; }
+        .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+        .section { padding: 56px 0; }
+        .section-title {
+            font-size: 1.7rem; font-weight: 700; color: #f1f5f9; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-title::after {
+            content: ''; flex: 1; height: 2px;
+            background: linear-gradient(90deg, rgba(16,185,129,0.5), transparent);
+            border-radius: 2px; margin-left: 12px;
+        }
+        .section-subtitle { color: #64748b; margin-bottom: 32px; font-size: 0.97rem; }
+
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s; }
+        .card:hover { border-color: #10b981; box-shadow: 0 0 24px rgba(16,185,129,0.12); transform: translateY(-2px); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+
+        .react-loop {
+            display: flex; justify-content: center; align-items: center;
+            flex-wrap: wrap; gap: 8px; padding: 32px; position: relative;
+        }
+        .loop-step {
+            background: #1e293b; border: 2px solid #334155; border-radius: 50%;
+            width: 90px; height: 90px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; cursor: default; transition: all 0.2s;
+        }
+        .loop-step:hover { border-color: #10b981; background: rgba(16,185,129,0.1); box-shadow: 0 0 16px rgba(16,185,129,0.25); }
+        .loop-step .ls-icon { font-size: 1.2rem; }
+        .loop-step .ls-label { font-size: 0.6rem; font-weight: 700; color: #94a3b8; margin-top: 3px; }
+        .loop-arrow { color: #475569; font-size: 1.2rem; align-self: center; }
+
+        .arch-diagram { background: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 40px 24px; margin: 24px 0; }
+        .arch-layer { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+        .arch-box { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 14px 22px; text-align: center; min-width: 160px; }
+        .arch-box.blue { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+        .arch-box.purple { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+        .arch-box.green { border-color: #10b981; background: rgba(16,185,129,0.08); }
+        .arch-box.orange { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+        .arch-box.teal { border-color: #06b6d4; background: rgba(6,182,212,0.08); }
+        .arch-box-title { font-weight: 700; font-size: 0.9rem; color: #f1f5f9; }
+        .arch-box-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 3px; }
+        .arch-arrow { text-align: center; color: #475569; font-size: 1.4rem; margin: 4px 0; }
+        .arch-label { text-align: center; font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 8px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        thead th { background: #1e293b; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 16px; text-align: left; border-bottom: 2px solid #334155; }
+        tbody td { padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 0.9rem; color: #cbd5e1; vertical-align: top; }
+        tbody tr:hover { background: rgba(16,185,129,0.05); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .badge-orange { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .badge-teal { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3); }
+        .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+        .code-block { background: #020617; border: 1px solid #1e293b; border-radius: 12px; padding: 20px 24px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; color: #e2e8f0; overflow-x: auto; margin: 12px 0; line-height: 1.7; }
+        .code-block .comment { color: #475569; }
+        .code-block .cmd { color: #34d399; }
+        .code-block .str { color: #fbbf24; }
+
+        .feature-item { display: flex; gap: 16px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid #1e293b; }
+        .feature-item:last-child { border-bottom: none; }
+        .feature-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+        .feature-title { font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+        .feature-desc { font-size: 0.9rem; color: #94a3b8; }
+
+        .problem-list { list-style: none; margin-top: 16px; }
+        .problem-list li { padding: 12px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; display: flex; align-items: flex-start; gap: 10px; font-size: 0.95rem; }
+        .problem-list li::before { content: '⚠'; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+        .security-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        @media (max-width: 600px) { .security-grid { grid-template-columns: 1fr; } }
+        .security-card { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 16px 18px; }
+        .security-card h4 { color: #34d399; font-size: 0.9rem; margin-bottom: 6px; }
+        .security-card p { color: #94a3b8; font-size: 0.85rem; }
+
+        .memory-tier { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+        @media (max-width: 700px) { .memory-tier { grid-template-columns: 1fr; } }
+        .memory-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+        .memory-card h4 { color: #34d399; margin-bottom: 8px; font-size: 0.9rem; }
+        .memory-card .mc-detail { font-size: 0.82rem; color: #64748b; }
+        .memory-card .mc-cap { font-size: 1.3rem; font-weight: 800; color: #f1f5f9; margin: 6px 0; }
+
+        .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+        @media (max-width: 600px) { .tool-grid { grid-template-columns: 1fr; } }
+        .tool-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+        .tool-icon { font-size: 1.3rem; flex-shrink: 0; }
+        .tool-name { font-weight: 700; color: #f1f5f9; font-size: 0.88rem; }
+        .tool-desc { font-size: 0.8rem; color: #64748b; margin-top: 3px; }
+
+        footer { background: #020617; border-top: 1px solid #1e293b; padding: 32px 40px; text-align: center; color: #475569; font-size: 0.85rem; }
+        footer span { color: #10b981; }
+        hr { border: none; border-top: 1px solid #1e293b; margin: 0; }
+    </style>
+</head>
+<body>
+
+<!-- 히어로 섹션 -->
+<section class="hero">
+    <div class="hero-badge">프로젝트 3 &nbsp;·&nbsp; 자율 AI 에이전트</div>
+    <h1>TaskPilot</h1>
+    <p class="hero-tagline">ReAct (추론-행동-관찰) 루프를 사용하는 프로젝트 관리 자율 AI 에이전트 — 3단계 메모리, 5가지 도구, 웹과 모바일 전반의 실시간 WebSocket 스트리밍 지원.</p>
+    <div><span class="lang-badge">🇰🇷 한국어</span></div>
+    <div class="stats-row">
+        <div class="stat-item"><div class="stat-num">~80</div><div class="stat-label">파일 수</div></div>
+        <div class="stat-item"><div class="stat-num">4</div><div class="stat-label">아키텍처 레이어</div></div>
+        <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">에이전트 도구</div></div>
+        <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">메모리 계층</div></div>
+        <div class="stat-item"><div class="stat-num">6</div><div class="stat-label">ReAct 단계</div></div>
+    </div>
+</section>
+
+<hr>
+
+<div class="container">
+
+    <!-- 문제 정의 -->
+    <section class="section">
+        <h2 class="section-title">🎯 문제 정의</h2>
+        <p class="section-subtitle">기존 챗봇이 복잡한 프로젝트 관리에서 실패하는 이유</p>
+        <div class="card">
+            <p style="color:#94a3b8; margin-bottom:16px;">기존 챗봇은 상태가 없고 반응적입니다 — 메모리나 계획 없이, 다단계 행동 능력 없이 한 번에 하나의 질문에만 답합니다. 프로젝트 관리는 작업, 일정, 우선순위, 팀원 간의 조율이 필요하며, 이는 지속적인 상태와 자율적인 의사결정을 요구합니다.</p>
+            <ul class="problem-list">
+                <li>챗봇은 계획을 세울 수 없습니다: 개별 프롬프트에 응답하지만 고수준 목표를 실행 가능한 단계의 연속으로 분해할 수 없습니다.</li>
+                <li>영속적인 메모리 없음: 각 대화는 새로 시작되어, 에이전트가 이전 세션에서 기억해야 할 컨텍스트를 사용자가 반복해야 합니다.</li>
+                <li>도구 접근 불가: 챗봇은 실제로 작업을 생성하거나, 데이터베이스에 쿼리하거나, 보고서를 생성하거나, 알림을 보낼 수 없습니다 — 이러한 것들을 설명만 할 수 있습니다.</li>
+                <li>자기 수정 불가: 행동이 실패하면, 단순한 챗봇은 실패를 관찰하고, 이에 대해 추론하며, 자동으로 다른 접근 방식을 시도할 수 없습니다.</li>
+                <li>모바일 및 실시간 격차: 프로젝트 관리는 여러 기기에서 발생하며 푸시 알림과 라이브 업데이트가 필요합니다 — API 전용 챗봇에는 없는 기능들입니다.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 아키텍처 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🏗 아키텍처</h2>
+        <p class="section-subtitle">웹, 모바일, .NET 오케스트레이션, Python 에이전트 코어에 걸친 4레이어 아키텍처</p>
+        <div class="arch-diagram">
+            <div class="arch-label">클라이언트 레이어</div>
+            <div class="arch-layer">
+                <div class="arch-box blue">
+                    <div class="arch-box-title">Next.js 14 웹</div>
+                    <div class="arch-box-sub">포트 3002 · 칸반 + 에이전트 UI</div>
+                </div>
+                <div class="arch-box teal">
+                    <div class="arch-box-title">React Native / Expo</div>
+                    <div class="arch-box-sub">모바일 · 푸시 알림</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ REST + WebSocket (SignalR)</div>
+            <div class="arch-label">오케스트레이션 레이어</div>
+            <div class="arch-layer">
+                <div class="arch-box purple">
+                    <div class="arch-box-title">.NET 8 Web API</div>
+                    <div class="arch-box-sub">포트 5002 · 작업 관리 & SignalR 허브</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ REST API / JSON</div>
+            <div class="arch-label">에이전트 코어 레이어</div>
+            <div class="arch-layer">
+                <div class="arch-box green">
+                    <div class="arch-box-title">Python FastAPI</div>
+                    <div class="arch-box-sub">포트 8001 · ReAct 루프 엔진</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ 선택적 LLM API</div>
+            <div class="arch-label">인텔리전스 레이어</div>
+            <div class="arch-layer">
+                <div class="arch-box orange">
+                    <div class="arch-box-title">OpenAI SDK</div>
+                    <div class="arch-box-sub">GPT-4o-mini (선택적) 또는 규칙 기반 폴백</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- REACT 루프 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔄 ReAct 루프</h2>
+        <p class="section-subtitle">6단계 자율 추론 및 행동 사이클</p>
+        <div class="card">
+            <div class="react-loop">
+                <div class="loop-step" style="border-color:#60a5fa; background:rgba(59,130,246,0.1);">
+                    <div class="ls-icon">🧠</div>
+                    <div class="ls-label">추론</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#a78bfa; background:rgba(139,92,246,0.1);">
+                    <div class="ls-icon">📋</div>
+                    <div class="ls-label">계획</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#34d399; background:rgba(16,185,129,0.1);">
+                    <div class="ls-icon">⚡</div>
+                    <div class="ls-label">행동</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#fbbf24; background:rgba(245,158,11,0.1);">
+                    <div class="ls-icon">👁</div>
+                    <div class="ls-label">관찰</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#f87171; background:rgba(239,68,68,0.1);">
+                    <div class="ls-icon">💾</div>
+                    <div class="ls-label">기억</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#22d3ee; background:rgba(6,182,212,0.1);">
+                    <div class="ls-icon">✅</div>
+                    <div class="ls-label">확인</div>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px;">
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#60a5fa; font-size:0.85rem;">1. 추론 (Reason)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">LLM(GPT-4o-mini) 또는 키워드 휴리스틱을 사용하여 목표를 분석하고 의도와 제약을 이해합니다.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#a78bfa; font-size:0.85rem;">2. 계획 (Plan)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">목표를 예상 매개변수와 폴백 단계가 있는 도구 호출의 순서 목록으로 분해합니다.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#34d399; font-size:0.85rem;">3. 행동 (Act)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">다음 계획된 도구 호출을 실행합니다 — TaskManagerTool, CodeAnalyzerTool, ReportGeneratorTool 등.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#fbbf24; font-size:0.85rem;">4. 관찰 (Observe)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">도구의 결과나 오류를 캡처합니다. SignalR을 통해 연결된 클라이언트에 관찰 이벤트를 스트리밍합니다.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#f87171; font-size:0.85rem;">5. 기억 (Remember)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">새로운 관찰과 중간 결과로 단기, 작업 및 장기 메모리 계층을 업데이트합니다.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#22d3ee; font-size:0.85rem;">6. 확인 (Check)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">목표가 달성되었는지 평가합니다. 그렇지 않으면 업데이트된 컨텍스트로 추론으로 돌아갑니다. 달성되었으면 결과를 반환합니다.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메모리 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🧠 3단계 메모리 시스템</h2>
+        <p class="section-subtitle">에이전트 세션 전반에 걸쳐 문맥적 연속성을 가능하게 하는 계층적 메모리 아키텍처</p>
+        <div class="memory-tier">
+            <div class="memory-card">
+                <h4>단기 메모리</h4>
+                <div class="mc-cap">20개 항목</div>
+                <p class="mc-detail">현재 ReAct 루프 반복 내의 최근 관찰과 행동의 인메모리 슬라이딩 윈도우. 용량 초과 시 가장 오래된 항목이 제거됩니다.</p>
+            </div>
+            <div class="memory-card">
+                <h4>작업 메모리</h4>
+                <div class="mc-cap">무제한</div>
+                <p class="mc-detail">현재 작업의 모든 중간 결과, 도구 출력 및 추론 트레이스. 단일 작업 실행으로 범위가 제한되며 작업 완료 시 초기화됩니다.</p>
+            </div>
+            <div class="memory-card">
+                <h4>장기 메모리</h4>
+                <div class="mc-cap">500개 항목</div>
+                <p class="mc-detail">완료된 작업 결과, 학습된 패턴 및 임베딩의 영구 저장. 에이전트가 의미론적 유사성 검색을 통해 새 작업에 관련 과거 경험을 검색할 수 있게 합니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 에이전트 도구 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔧 에이전트 도구</h2>
+        <p class="section-subtitle">작업 실행 중 ReAct 에이전트가 사용할 수 있는 5가지 도구</p>
+        <div class="tool-grid">
+            <div class="tool-card">
+                <div class="tool-icon">📋</div>
+                <div><div class="tool-name">TaskManagerTool</div><div class="tool-desc">프로젝트 관리 데이터베이스에서 작업을 생성, 업데이트, 삭제 및 쿼리합니다. 상태 전환 및 우선순위 변경을 지원합니다.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🔍</div>
+                <div><div class="tool-name">CodeAnalyzerTool</div><div class="tool-desc">코드 스니펫이나 저장소 구조를 분석합니다. 복잡성을 추정하고, 패턴을 식별하며, 구조화된 요약을 생성합니다.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">📊</div>
+                <div><div class="tool-name">ReportGeneratorTool</div><div class="tool-desc">작업 데이터에서 Markdown 또는 JSON 형식으로 진행 보고서, 스프린트 요약 및 상태 업데이트를 생성합니다.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🌐</div>
+                <div><div class="tool-name">WebSearcherTool</div><div class="tool-desc">작업 계획 결정에 정보를 제공하기 위해 기술 문서, 모범 사례 또는 관련 리소스를 검색합니다.</div></div>
+            </div>
+            <div class="tool-card" style="grid-column: 1 / -1;">
+                <div class="tool-icon">🔔</div>
+                <div><div class="tool-name">NotificationTool</div><div class="tool-desc">Expo를 통해 모바일 기기에 푸시 알림을 보내고, SignalR WebSocket 허브를 통해 웹 클라이언트에 실시간 이벤트를 브로드캐스트합니다.</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 기술 스택 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🛠 기술 스택</h2>
+        <p class="section-subtitle">자율 AI 기능을 갖춘 크로스 플랫폼 풀 스택</p>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead>
+                    <tr><th>레이어</th><th>기술</th><th>버전</th><th>목적</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-blue">웹</span></td><td>Next.js</td><td>14</td><td>드래그 앤 드롭 칸반 보드, 에이전트 이벤트 피드</td></tr>
+                    <tr><td><span class="badge badge-teal">모바일</span></td><td>React Native / Expo</td><td>50+</td><td>푸시 알림을 지원하는 iOS & Android 컴패니언 앱</td></tr>
+                    <tr><td><span class="badge badge-blue">웹</span></td><td>TypeScript</td><td>5.x</td><td>웹 및 API 클라이언트의 타입 안전성</td></tr>
+                    <tr><td><span class="badge badge-purple">백엔드</span></td><td>.NET</td><td>8.0</td><td>REST API, SignalR 허브, 작업 CRUD</td></tr>
+                    <tr><td><span class="badge badge-purple">백엔드</span></td><td>SignalR</td><td>8.x</td><td>에이전트 이벤트의 실시간 WebSocket 스트리밍</td></tr>
+                    <tr><td><span class="badge badge-purple">백엔드</span></td><td>Entity Framework Core</td><td>8.x</td><td>작업 및 에이전트 세션 영속성</td></tr>
+                    <tr><td><span class="badge badge-green">에이전트</span></td><td>Python FastAPI</td><td>0.110+</td><td>ReAct 루프 엔진, 도구 실행, 메모리 관리</td></tr>
+                    <tr><td><span class="badge badge-green">에이전트</span></td><td>OpenAI SDK</td><td>1.x</td><td>LLM 기반 계획을 위한 GPT-4o-mini (선택적)</td></tr>
+                    <tr><td><span class="badge badge-orange">인프라</span></td><td>Docker & Compose</td><td>24+</td><td>컨테이너화된 멀티 서비스 배포</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 주요 기능 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">✨ 주요 기능</h2>
+        <p class="section-subtitle">풀 스택 실시간 기능을 갖춘 자율 작업 관리</p>
+        <div class="grid-2">
+            <div class="card">
+                <div class="feature-item">
+                    <span class="feature-icon">🤖</span>
+                    <div><div class="feature-title">6단계 ReAct 루프</div><div class="feature-desc">추론 → 계획 → 행동 → 관찰 → 기억 → 확인. 에이전트는 목표가 달성되거나 설정 가능한 반복 한도에 도달할 때까지 자율적으로 반복합니다.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🧠</span>
+                    <div><div class="feature-title">이중 모드 계획</div><div class="feature-desc">API 키가 제공될 때 LLM 기반 계획(GPT-4o-mini), 비용 없는 로컬 운영을 위한 규칙 기반 키워드 휴리스틱으로 폴백.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📡</span>
+                    <div><div class="feature-title">실시간 이벤트 스트리밍</div><div class="feature-desc">모든 에이전트 이벤트(추론 단계, 도구 호출, 관찰)가 SignalR WebSocket을 통해 실시간으로 웹 대시보드에 스트리밍됩니다.</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <div><div class="feature-title">모바일 컴패니언 앱</div><div class="feature-desc">iOS 및 Android에서 작업 할당, 상태 변경 및 에이전트 완료 이벤트를 위한 푸시 알림을 지원하는 React Native / Expo 앱.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📌</span>
+                    <div><div class="feature-title">칸반 보드</div><div class="feature-desc">백로그, 진행 중, 검토, 완료 열이 있는 드래그 앤 드롭 칸반 보드. 다양한 상태와 우선순위를 가진 8개의 시드된 데모 작업.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🌱</span>
+                    <div><div class="feature-title">데모 시드 데이터</div><div class="feature-desc">첫 시작 시 전체 프로젝트 수명 주기를 보여주기 위한 다양한 우선순위(Critical, High, Medium, Low)와 상태를 가진 8개의 사전 시드된 작업.</div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API 엔드포인트 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔌 API 엔드포인트</h2>
+        <p class="section-subtitle">.NET 8 오케스트레이션 레이어와 Python 에이전트 코어 전반의 REST 엔드포인트</p>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead>
+                    <tr><th>메서드</th><th>엔드포인트</th><th>설명</th><th>서비스</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/tasks</td><td>상태 및 우선순위 필터로 모든 작업 목록 조회</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/api/tasks</td><td>새 작업 생성</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-orange">PUT</span></td><td>/api/tasks/:id</td><td>작업 상태, 우선순위 또는 담당자 업데이트</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-red">DELETE</span></td><td>/api/tasks/:id</td><td>작업 삭제</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/api/agent/run</td><td>목표 문자열로 새 에이전트 세션 시작</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/sessions</td><td>결과와 함께 모든 에이전트 세션 목록 조회</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/sessions/:id</td><td>에이전트 세션의 전체 이벤트 로그 조회</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/memory</td><td>현재 장기 메모리 항목 검사</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/agent/execute</td><td>ReAct 반복 실행 (내부적으로 호출)</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/agent/tool/:name</td><td>이름으로 특정 도구 호출</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/agent/health</td><td>에이전트 코어 상태 및 LLM 가용성 상태</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/agent/tools</td><td>스키마와 함께 사용 가능한 도구 목록 조회</td><td>Python</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- 빠른 시작 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🚀 빠른 시작</h2>
+        <p class="section-subtitle">데모 데이터로 TaskPilot 실행 — LLM은 선택 사항이며, 규칙 기반 모드가 즉시 작동합니다</p>
+        <div class="card">
+            <p style="color:#94a3b8; margin-bottom:12px;"><strong style="color:#f1f5f9;">1단계:</strong> 저장소 클론</p>
+            <div class="code-block">
+<span class="cmd">git clone</span> https://github.com/your-org/ai-agent-taskpilot.git
+<span class="cmd">cd</span> ai-agent-taskpilot
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">2단계:</strong> 환경 구성 (OpenAI 키는 선택 사항)</p>
+            <div class="code-block">
+<span class="cmd">cp</span> .env.example .env
+<span class="comment"># 선택 사항: LLM 기반 계획을 위한 OpenAI 키 추가</span>
+<span class="str">OPENAI_API_KEY</span>=sk-... <span class="comment"># 규칙 기반 폴백을 사용하려면 비워두세요</span>
+<span class="str">AGENT_MAX_ITERATIONS</span>=10
+<span class="str">MEMORY_LONG_TERM_CAPACITY</span>=500
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">3단계:</strong> Docker Compose로 모든 서비스 시작</p>
+            <div class="code-block">
+<span class="cmd">docker compose up</span> --build -d
+<span class="comment"># 서비스 시작 중:</span>
+<span class="comment">#  ✓ web-dashboard  → http://localhost:3002</span>
+<span class="comment">#  ✓ dotnet-api     → http://localhost:5002</span>
+<span class="comment">#  ✓ agent-core     → http://localhost:8001</span>
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">4단계:</strong> API를 통해 에이전트 작업 실행</p>
+            <div class="code-block">
+<span class="cmd">curl</span> -X POST http://localhost:5002/api/agent/run \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"goal": "사용자 인증 구현을 위한 작업을 생성하고 높은 우선순위 지정"}'</span>
+<span class="comment"># 반환: {"sessionId": "sess_abc", "status": "running"}</span>
+<span class="comment"># ws://localhost:5002/hubs/agent 에서 이벤트 스트림 모니터링</span>
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">5단계:</strong> <a href="http://localhost:3002">http://localhost:3002</a>에서 칸반 보드 열기</p>
+        </div>
+    </section>
+
+    <!-- 보안 고려사항 -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔒 보안 고려사항</h2>
+        <p class="section-subtitle">설정 가능한 가드레일을 갖춘 안전한 자율 에이전트 운영</p>
+        <div class="security-grid">
+            <div class="security-card">
+                <h4>🔑 API 키 보안</h4>
+                <p>OpenAI API 키는 환경 변수에만 저장됩니다. Python 에이전트 코어는 키를 절대 로그하지 않습니다. OpenAI에 대한 요청은 서버 사이드에서만 이루어지며 — 키는 브라우저 클라이언트에 절대 노출되지 않습니다.</p>
+            </div>
+            <div class="security-card">
+                <h4>🔁 반복 제한</h4>
+                <p>ReAct 루프에는 설정 가능한 최대 반복 횟수가 있습니다(기본값 10). 이는 LLM 기반 계획을 사용할 때 무한 루프와 과도한 토큰 비용을 방지합니다.</p>
+            </div>
+            <div class="security-card">
+                <h4>🛡 도구 접근 제어</h4>
+                <p>각 에이전트 도구는 실행 전에 입력을 검증합니다. TaskManagerTool은 필드 수준 검증을 시행합니다. WebSearcherTool에는 도메인 허용/차단 목록이 있습니다.</p>
+            </div>
+            <div class="security-card">
+                <h4>📡 WebSocket 인증</h4>
+                <p>SignalR 허브 연결은 유효한 세션 토큰이 필요합니다. 인증되지 않은 클라이언트는 공개 이벤트만 받습니다; 작업 수준 이벤트는 권한 부여가 필요합니다.</p>
+            </div>
+            <div class="security-card">
+                <h4>💾 메모리 프라이버시</h4>
+                <p>장기 메모리 항목은 사용자 세션 범위로 지정됩니다. 민감한 작업의 임베딩은 외부 임베딩 서비스에 전송하지 않고 로컬에 저장됩니다.</p>
+            </div>
+            <div class="security-card">
+                <h4>📱 모바일 푸시 알림</h4>
+                <p>Expo 푸시 토큰은 암호화하여 저장됩니다. 알림 페이로드에는 작업 ID만 포함되며 — 전체 작업 데이터는 알림 수신 후 클라이언트가 가져옵니다.</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    <p>TaskPilot &nbsp;·&nbsp; AI/ML 포트폴리오 &nbsp;·&nbsp; <span>Python FastAPI</span>, <span>.NET 8</span>, <span>Next.js 14</span>, <span>React Native/Expo</span>로 구축</p>
+    <p style="margin-top:8px; color:#334155;">포트폴리오 시연 목적으로 생성된 문서입니다.</p>
+</footer>
+
+</body>
+</html>

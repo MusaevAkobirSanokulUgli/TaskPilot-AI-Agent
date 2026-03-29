@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+  }
+
+  .card-hover {
+    @apply card hover:shadow-md transition-shadow duration-200;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white px-4 py-2 rounded-lg font-medium
+           hover:bg-primary-700 active:bg-primary-800
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium
+           hover:bg-gray-200 active:bg-gray-300
+           transition-colors duration-150;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium
+           hover:bg-red-700 active:bg-red-800
+           transition-colors duration-150;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+           placeholder-gray-400;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-critical {
+    @apply badge bg-red-100 text-red-800;
+  }
+
+  .badge-high {
+    @apply badge bg-orange-100 text-orange-800;
+  }
+
+  .badge-medium {
+    @apply badge bg-yellow-100 text-yellow-800;
+  }
+
+  .badge-low {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-todo {
+    @apply badge bg-gray-100 text-gray-800;
+  }
+
+  .badge-open {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+
+  .badge-in_progress {
+    @apply badge bg-purple-100 text-purple-800;
+  }
+
+  .badge-done {
+    @apply badge bg-green-100 text-green-800;
+  }
+
+  .badge-blocked {
+    @apply badge bg-red-100 text-red-800;
+  }
+
+  .agent-state-dot {
+    @apply w-3 h-3 rounded-full inline-block;
+  }
+
+  .agent-state-idle {
+    @apply agent-state-dot bg-gray-400;
+  }
+
+  .agent-state-thinking {
+    @apply agent-state-dot bg-amber-400 animate-pulse;
+  }
+
+  .agent-state-planning {
+    @apply agent-state-dot bg-violet-400 animate-pulse;
+  }
+
+  .agent-state-acting {
+    @apply agent-state-dot bg-blue-400 animate-pulse;
+  }
+
+  .agent-state-observing {
+    @apply agent-state-dot bg-emerald-400 animate-pulse;
+  }
+
+  .agent-state-completed {
+    @apply agent-state-dot bg-green-500;
+  }
+
+  .agent-state-error {
+    @apply agent-state-dot bg-red-500;
+  }
+
+  .agent-state-stopped {
+    @apply agent-state-dot bg-orange-500;
+  }
+}
+
+/* Kanban board drag styles */
+.kanban-column {
+  @apply min-h-[200px] transition-colors duration-200;
+}
+
+.kanban-column.drag-over {
+  @apply bg-primary-50 border-primary-300;
+}
+
+.task-card-dragging {
+  @apply opacity-50 rotate-2 scale-105;
+}
+
+/* Scrollbar styling */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded hover:bg-gray-400;
+}
+
+/* Markdown-like content */
+.report-content h1 {
+  @apply text-2xl font-bold mb-4 text-gray-900;
+}
+
+.report-content h2 {
+  @apply text-xl font-semibold mt-6 mb-3 text-gray-800;
+}
+
+.report-content h3 {
+  @apply text-lg font-medium mt-4 mb-2 text-gray-700;
+}
+
+.report-content p {
+  @apply mb-3 text-gray-600;
+}
+
+.report-content ul {
+  @apply list-disc list-inside mb-3 space-y-1;
+}
+
+.report-content li {
+  @apply text-gray-600;
+}
+
+.report-content table {
+  @apply w-full border-collapse mb-4;
+}
+
+.report-content th,
+.report-content td {
+  @apply border border-gray-200 px-3 py-2 text-left;
+}
+
+.report-content th {
+  @apply bg-gray-50 font-semibold;
+}
+
+.report-content strong {
+  @apply font-semibold text-gray-900;
+}

@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskPilot – Development Process & Architecture</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0f172a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;line-height:1.7}
+  a{color:#818cf8;text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ── Language switcher ── */
+  .lang-bar{position:sticky;top:0;z-index:100;background:#1e293b;border-bottom:1px solid #334155;display:flex;align-items:center;gap:8px;padding:10px 24px;flex-wrap:wrap}
+  .lang-bar span{color:#94a3b8;font-size:.85rem;margin-right:4px}
+  .lang-btn{background:transparent;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:.85rem;transition:all .2s}
+  .lang-btn:hover{border-color:#6366f1;color:#e2e8f0}
+  .lang-btn.active{background:#6366f1;border-color:#6366f1;color:#fff;font-weight:600}
+
+  /* ── Layout ── */
+  .container{max-width:1100px;margin:0 auto;padding:40px 24px}
+  .lang-section{display:none}
+  .lang-section.active{display:block}
+
+  /* ── Hero ── */
+  .hero{text-align:center;padding:56px 0 40px}
+  .hero .badge{display:inline-block;background:#312e81;color:#a5b4fc;border:1px solid #4338ca;border-radius:20px;padding:4px 16px;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:16px}
+  .hero h1{font-size:2.6rem;font-weight:800;color:#f1f5f9;line-height:1.2;margin-bottom:12px}
+  .hero h1 span{color:#6366f1}
+  .hero p{color:#94a3b8;font-size:1.1rem;max-width:680px;margin:0 auto}
+
+  /* ── Section headings ── */
+  h2{font-size:1.5rem;font-weight:700;color:#f1f5f9;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #1e293b;display:flex;align-items:center;gap:10px}
+  h2::before{content:'';display:inline-block;width:4px;height:24px;background:#6366f1;border-radius:2px}
+  h3{font-size:1.1rem;font-weight:600;color:#c7d2fe;margin:24px 0 10px}
+  h4{font-size:.95rem;font-weight:600;color:#a5b4fc;margin:16px 0 8px}
+
+  /* ── Cards ── */
+  .card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:24px;margin-bottom:20px}
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px}
+  .card-sm{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:18px}
+  .card-sm h4{margin-top:0}
+
+  /* ── Stat pills ── */
+  .stats{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
+  .stat{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px 18px;text-align:center}
+  .stat .val{font-size:1.6rem;font-weight:800;color:#6366f1}
+  .stat .lbl{font-size:.75rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em}
+
+  /* ── Phase steps ── */
+  .phases{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+  .phase{display:flex;gap:16px;align-items:flex-start;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px}
+  .phase-num{min-width:40px;height:40px;border-radius:50%;background:#6366f1;color:#fff;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+  .phase-body .name{font-weight:700;color:#e2e8f0;font-size:.95rem}
+  .phase-body .desc{color:#94a3b8;font-size:.88rem;margin-top:4px}
+
+  /* ── Tools grid ── */
+  .tool-card{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:16px}
+  .tool-card .tool-name{font-weight:700;color:#a5b4fc;font-size:.95rem;margin-bottom:6px}
+  .tool-card .tool-ops{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .op-tag{background:#1e293b;border:1px solid #475569;color:#94a3b8;border-radius:4px;padding:2px 8px;font-size:.75rem;font-family:monospace}
+  .tool-card .tool-desc{color:#64748b;font-size:.82rem}
+
+  /* ── Memory tiers ── */
+  .mem-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+  .mem-card{border-radius:10px;padding:18px}
+  .mem-card.short{background:#1a2744;border:1px solid #1d4ed8}
+  .mem-card.working{background:#1a2e1a;border:1px solid #15803d}
+  .mem-card.long{background:#2a1a44;border:1px solid #7c3aed}
+  .mem-card .mem-title{font-weight:700;margin-bottom:8px}
+  .mem-card.short .mem-title{color:#60a5fa}
+  .mem-card.working .mem-title{color:#4ade80}
+  .mem-card.long .mem-title{color:#c084fc}
+  .mem-card .mem-detail{font-size:.82rem;color:#94a3b8}
+  .mem-card .mem-detail li{margin-bottom:4px}
+
+  /* ── State machine ── */
+  .states{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+  .state-pill{border-radius:20px;padding:6px 16px;font-size:.82rem;font-weight:600}
+  .state-pill.idle{background:#1e293b;color:#94a3b8;border:1px solid #475569}
+  .state-pill.thinking{background:#451a03;color:#fb923c;border:1px solid #c2410c}
+  .state-pill.planning{background:#2e1065;color:#c084fc;border:1px solid #7c3aed}
+  .state-pill.acting{background:#172554;color:#60a5fa;border:1px solid #1d4ed8}
+  .state-pill.observing{background:#052e16;color:#4ade80;border:1px solid #15803d}
+  .state-pill.completed{background:#0c4a6e;color:#38bdf8;border:1px solid #0284c7}
+  .state-pill.error{background:#450a0a;color:#f87171;border:1px solid #b91c1c}
+  .state-arrow{color:#475569;font-size:1.1rem;align-self:center}
+
+  /* ── Tech stack pills ── */
+  .tech-group{margin-bottom:16px}
+  .tech-group .layer{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-bottom:8px}
+  .pills{display:flex;flex-wrap:wrap;gap:7px}
+  .pill{background:#0f172a;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:4px 12px;font-size:.8rem;font-family:monospace}
+  .pill.accent{border-color:#4338ca;color:#a5b4fc}
+
+  /* ── Code block ── */
+  pre{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:16px;overflow-x:auto;font-size:.82rem;font-family:'Fira Code','Cascadia Code',monospace;color:#e6edf3;margin:12px 0}
+  code{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-size:.82rem;font-family:monospace;color:#e6edf3}
+
+  /* ── Tables ── */
+  .table-wrap{overflow-x:auto;margin:16px 0}
+  table{width:100%;border-collapse:collapse;font-size:.85rem}
+  th{background:#1e293b;color:#94a3b8;text-align:left;padding:10px 14px;font-weight:600;border-bottom:2px solid #334155}
+  td{padding:10px 14px;border-bottom:1px solid #1e293b;vertical-align:top}
+  tr:hover td{background:#1a2235}
+  td code{font-size:.78rem}
+  .badge-req{background:#0c4a6e;color:#38bdf8;border-radius:4px;padding:2px 8px;font-size:.75rem;font-weight:600}
+  .badge-opt{background:#1a2e1a;color:#4ade80;border-radius:4px;padding:2px 8px;font-size:.75rem;font-weight:600}
+
+  /* ── Settings section accents ── */
+  .settings-dev h2{border-bottom-color:#0891b2}
+  .settings-dev h2::before{background:#0891b2}
+  .settings-prod h2{border-bottom-color:#059669}
+  .settings-prod h2::before{background:#059669}
+  .settings-dev th{background:#0c2a33;color:#67e8f9}
+  .settings-prod th{background:#052e16;color:#6ee7b7}
+  .settings-dev .table-wrap table{border:1px solid #164e63}
+  .settings-prod .table-wrap table{border:1px solid #064e3b}
+  .note-dev{background:#0c2a33;border-left:4px solid #0891b2;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:.88rem;color:#cffafe}
+  .note-prod{background:#052e16;border-left:4px solid #059669;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:.88rem;color:#d1fae5}
+
+  /* ── DB schema ── */
+  .schema-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:12px 0}
+  .schema-card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px}
+  .schema-card .model{font-weight:700;color:#a5b4fc;font-size:.88rem;margin-bottom:6px}
+  .schema-card .fields{font-size:.78rem;color:#64748b;font-family:monospace}
+
+  /* ── SignalR/WS events ── */
+  .event-list{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .ev{background:#1e293b;border:1px solid #334155;border-radius:6px;padding:4px 12px;font-size:.8rem;font-family:monospace;color:#a5b4fc}
+
+  /* ── Footer ── */
+  footer{text-align:center;padding:40px 24px 32px;color:#334155;font-size:.82rem;border-top:1px solid #1e293b;margin-top:60px}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LANGUAGE BAR ══════════ -->
+<div class="lang-bar">
+  <span>Language:</span>
+  <button class="lang-btn active" onclick="switchLang('en')">🇺🇸 English</button>
+  <button class="lang-btn" onclick="switchLang('uz')">🇺🇿 O'zbek</button>
+  <button class="lang-btn" onclick="switchLang('ko')">🇰🇷 한국어</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ENGLISH
+═══════════════════════════════════════════════════════════ -->
+<div id="lang-en" class="lang-section active">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">Project 3 · AI Agent</div>
+    <h1><span>TaskPilot</span> — Development Process<br>&amp; Architecture</h1>
+    <p>Autonomous Project Management AI Agent built on a ReAct reasoning loop with a 4-tier polyglot architecture.</p>
+  </div>
+
+  <!-- ── Overview ── -->
+  <h2>Project Overview</h2>
+  <div class="card">
+    <p>Engineers waste <strong>60%+ of their time</strong> on repetitive project-management workflows: bug triage, status reporting, task assignment, and standup preparation. <strong>TaskPilot</strong> eliminates that overhead with an autonomous AI agent that reasons, plans, acts, observes, and remembers — completing full PM workflows end-to-end without manual intervention.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="val">4</div><div class="lbl">Service Tiers</div></div>
+    <div class="stat"><div class="val">~80</div><div class="lbl">Source Files</div></div>
+    <div class="stat"><div class="val">4</div><div class="lbl">Languages</div></div>
+    <div class="stat"><div class="val">5</div><div class="lbl">Agent Tools</div></div>
+    <div class="stat"><div class="val">3</div><div class="lbl">Memory Tiers</div></div>
+    <div class="stat"><div class="val">6</div><div class="lbl">ReAct Phases</div></div>
+  </div>
+
+  <!-- ── Architecture ── -->
+  <h2>4-Tier Architecture</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>Tier 1 — Web Frontend</h4>
+      <p style="font-size:.85rem;color:#94a3b8">Next.js 14 · Port <code>3002</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">Dashboard, Chat, Kanban Tasks, Memory Viewer, Reports. Connects to .NET backend via REST and to Agent Core via WebSocket.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Tier 2 — Mobile</h4>
+      <p style="font-size:.85rem;color:#94a3b8">React Native / Expo · Port <code>19006</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">Cross-platform iOS/Android companion app. Navigation with React Navigation 6.x. Points to .NET API at port 5002.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Tier 3 — .NET 8 API</h4>
+      <p style="font-size:.85rem;color:#94a3b8">.NET 8 / EF Core · Port <code>5002</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">REST API + SignalR hub. Manages Projects, Tasks, AgentSessions, Memories, Reports in SQLite. Auto-seeds 1 project + 8 tasks on first run.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Tier 4 — Python Agent Core</h4>
+      <p style="font-size:.85rem;color:#94a3b8">FastAPI / Python 3.11 · Port <code>8001</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">The brain. Hosts the ReAct loop, Planner, MemoryManager, and all 5 tools. Streams events over WebSocket. Calls .NET API for real data; falls back to mock store.</p>
+    </div>
+  </div>
+
+  <!-- ── Tech Stack ── -->
+  <h2>Technology Stack</h2>
+  <div class="card">
+    <div class="tech-group">
+      <div class="layer">Web Frontend</div>
+      <div class="pills">
+        <span class="pill accent">Next.js 14.1.0</span>
+        <span class="pill accent">React 18.2.0</span>
+        <span class="pill accent">TypeScript 5.3.3</span>
+        <span class="pill">Tailwind CSS 3.4.1</span>
+        <span class="pill">@microsoft/signalr 8.0.0</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">Mobile</div>
+      <div class="pills">
+        <span class="pill accent">React Native 0.73.4</span>
+        <span class="pill accent">Expo 50.0.6</span>
+        <span class="pill">@react-navigation 6.x</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">Backend API</div>
+      <div class="pills">
+        <span class="pill accent">.NET 8</span>
+        <span class="pill">EF Core 8.0.2</span>
+        <span class="pill">SQLite</span>
+        <span class="pill">SignalR 8.0.2</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">Agent Core</div>
+      <div class="pills">
+        <span class="pill accent">Python 3.11</span>
+        <span class="pill accent">FastAPI 0.109.2</span>
+        <span class="pill">Uvicorn 0.27.1</span>
+        <span class="pill">Pydantic 2.6.1</span>
+        <span class="pill">httpx 0.26.0</span>
+        <span class="pill">OpenAI SDK 1.12.0</span>
+        <span class="pill">NumPy</span>
+        <span class="pill">scikit-learn 1.4.0</span>
+        <span class="pill">tiktoken 0.6.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ReAct Loop ── -->
+  <h2>ReAct Loop — 6 Phases (max 10 iterations)</h2>
+  <div class="card" style="margin-bottom:20px">
+    <p style="color:#94a3b8;font-size:.9rem">The agent runs a <strong>Reason → Plan → Act → Observe → Remember → Check</strong> cycle. Each iteration either completes the goal or feeds its observations back into the next reasoning step.</p>
+  </div>
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-num">1</div>
+      <div class="phase-body">
+        <div class="name">REASON — <code>Planner.reason()</code> → Thought</div>
+        <div class="desc">Analyzes the instruction combined with memory context and any previous observations. Produces a natural-language thought that frames the problem and identifies what information is still needed.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">2</div>
+      <div class="phase-body">
+        <div class="name">PLAN — <code>Planner.plan()</code> → Plan with ToolCalls</div>
+        <div class="desc">Converts the thought into a structured plan: goal statement + ordered steps + specific tool invocations with arguments.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">3</div>
+      <div class="phase-body">
+        <div class="name">ACT — <code>AgentLoop._execute_tool()</code> → Action results</div>
+        <div class="desc">Dispatches each planned tool call to the appropriate Tool class. Calls <code>tool.execute(arguments)</code> and collects the raw result payload.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">4</div>
+      <div class="phase-body">
+        <div class="name">OBSERVE — <code>AgentLoop._create_observation()</code></div>
+        <div class="desc">Synthesizes the raw tool results into a concise natural-language observation that captures what happened and what was learned.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">5</div>
+      <div class="phase-body">
+        <div class="name">REMEMBER — <code>MemoryManager.store_interaction()</code></div>
+        <div class="desc">Stores the interaction in short-term and working memory. Significant entries (high importance score) are promoted to long-term memory with embeddings.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">6</div>
+      <div class="phase-body">
+        <div class="name">CHECK — <code>Planner.check_completion()</code> → bool</div>
+        <div class="desc">Detects completion keywords in the last observation. When <code>OPENAI_API_KEY</code> is set, also calls the LLM for a semantic completion check. Returns <code>True</code> to exit the loop or <code>False</code> to iterate again.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Planner Dual Mode ── -->
+  <h2>Planner — Dual Mode</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>LLM Mode (GPT-4o-mini)</h4>
+      <p style="font-size:.83rem;color:#94a3b8">Activated when <code>OPENAI_API_KEY</code> is set. Uses GPT-4o-mini for open-ended reasoning and dynamic tool selection. Best for ambiguous or complex instructions.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Rule-Based Mode (Keyword Heuristics)</h4>
+      <p style="font-size:.83rem;color:#94a3b8">Works without any API key. Keyword routing:</p>
+      <ul style="font-size:.8rem;color:#64748b;padding-left:16px;margin-top:8px">
+        <li><code>triage/bug</code> → bug triage workflow</li>
+        <li><code>report</code> → report generation</li>
+        <li><code>assign</code> → assignment workflow</li>
+        <li><code>status/standup</code> → standup summary</li>
+        <li><code>create task</code> → task creation</li>
+        <li><code>analyze/code</code> → code analysis</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 5 Tools ── -->
+  <h2>5 Agent Tools</h2>
+  <div class="card-grid">
+    <div class="tool-card">
+      <div class="tool-name">TaskManagerTool</div>
+      <div class="tool-ops">
+        <span class="op-tag">list</span><span class="op-tag">create</span><span class="op-tag">update</span><span class="op-tag">assign</span><span class="op-tag">delete</span><span class="op-tag">update_batch</span><span class="op-tag">assign_batch</span>
+      </div>
+      <div class="tool-desc">Calls the .NET backend REST API as primary source. Falls back to an in-memory mock store seeded with 8 representative tasks when the backend is unavailable.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">CodeAnalyzerTool</div>
+      <div class="tool-ops">
+        <span class="op-tag">analyze</span><span class="op-tag">find_issues</span><span class="op-tag">metrics</span><span class="op-tag">review</span>
+      </div>
+      <div class="tool-desc">Scopes: full / frontend / backend / agent. Returns structured issue objects with severity, location, line number, and suggestion.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">ReportGeneratorTool</div>
+      <div class="tool-ops">
+        <span class="op-tag">generate</span><span class="op-tag">list</span>
+      </div>
+      <div class="tool-desc">Types: daily / weekly / standup / sprint / status. Generates Markdown reports containing metrics, summaries, and action items.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">WebSearcherTool</div>
+      <div class="tool-ops">
+        <span class="op-tag">search</span><span class="op-tag">lookup</span>
+      </div>
+      <div class="tool-desc">Contextual mock results + internal knowledge base covering bug priorities, agile methodology, and CI/CD best practices.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">NotificationTool</div>
+      <div class="tool-ops">
+        <span class="op-tag">send</span><span class="op-tag">send_batch</span><span class="op-tag">list_sent</span><span class="op-tag">clear</span>
+      </div>
+      <div class="tool-desc">Urgency levels: low / normal / high / critical. In-memory notification log. Used by the agent to alert team members after completing workflows.</div>
+    </div>
+  </div>
+
+  <!-- ── Memory ── -->
+  <h2>3-Tier Memory System</h2>
+  <div class="mem-grid">
+    <div class="mem-card short">
+      <div class="mem-title">Short-Term Memory</div>
+      <ul class="mem-detail">
+        <li>Capacity: <strong>20 entries</strong></li>
+        <li>Eviction: FIFO (oldest dropped)</li>
+        <li>Significant entries promoted to long-term</li>
+        <li>Retrieval weight: <strong>1.5×</strong></li>
+      </ul>
+    </div>
+    <div class="mem-card working">
+      <div class="mem-title">Working Memory</div>
+      <ul class="mem-detail">
+        <li>Capacity: <strong>unbounded</strong></li>
+        <li>Active task state only</li>
+        <li>Format: "Action: X → Result: Y"</li>
+        <li>Cleared on task completion</li>
+        <li>Retrieval weight: <strong>1.2×</strong></li>
+      </ul>
+    </div>
+    <div class="mem-card long">
+      <div class="mem-title">Long-Term Memory</div>
+      <ul class="mem-detail">
+        <li>Capacity: <strong>500 entries</strong></li>
+        <li>128-dim hash-based embeddings</li>
+        <li>Cosine similarity retrieval</li>
+        <li>Eviction: LRU</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Agent State Machine ── -->
+  <h2>Agent State Machine</h2>
+  <div class="card">
+    <div class="states">
+      <span class="state-pill idle">idle</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill thinking">thinking</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill planning">planning</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill acting">acting</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill observing">observing</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill completed">completed</span>
+    </div>
+    <p style="font-size:.83rem;color:#64748b;margin-top:12px">Terminal states: <span style="color:#f87171">error</span> or <span style="color:#fb923c">stopped</span>. The loop may cycle back from <em>observing</em> to <em>thinking</em> up to 10 times before forcing completion.</p>
+  </div>
+
+  <!-- ── SignalR / WebSocket ── -->
+  <h2>Real-Time Events</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>SignalR Hub Events (.NET → Web)</h4>
+      <div class="event-list">
+        <span class="ev">AgentStateChanged</span>
+        <span class="ev">TaskCreated</span>
+        <span class="ev">TaskUpdated</span>
+        <span class="ev">TaskAssigned</span>
+        <span class="ev">TaskDeleted</span>
+      </div>
+    </div>
+    <div class="card-sm">
+      <h4>WebSocket Events (Agent Core → Web)</h4>
+      <div class="event-list">
+        <span class="ev">state_change</span>
+        <span class="ev">thought</span>
+        <span class="ev">plan</span>
+        <span class="ev">action</span>
+        <span class="ev">observation</span>
+        <span class="ev">complete</span>
+        <span class="ev">error</span>
+        <span class="ev">heartbeat</span>
+      </div>
+      <p style="font-size:.78rem;color:#64748b;margin-top:8px">Heartbeat sent every 30 seconds to keep connection alive.</p>
+    </div>
+  </div>
+
+  <!-- ── Database ── -->
+  <h2>Database Schema (SQLite — 6 Models)</h2>
+  <div class="schema-grid">
+    <div class="schema-card"><div class="model">Projects</div><div class="fields">Id, Name, Description,<br>Status, CreatedAt</div></div>
+    <div class="schema-card"><div class="model">Tasks</div><div class="fields">Id, Title, Description,<br>Status, Priority,<br>AssignedTo, ProjectId<br><em style="color:#4ade80">Seeded: 8 tasks</em></div></div>
+    <div class="schema-card"><div class="model">AgentSessions</div><div class="fields">Id, Instruction,<br>Status, StartedAt,<br>CompletedAt, Result</div></div>
+    <div class="schema-card"><div class="model">AgentActions</div><div class="fields">Id, SessionId,<br>ToolName, Arguments,<br>Result, Timestamp</div></div>
+    <div class="schema-card"><div class="model">Memories</div><div class="fields">Id, Content, Type,<br>Importance,<br>Embedding, CreatedAt</div></div>
+    <div class="schema-card"><div class="model">Reports</div><div class="fields">Id, Type, Content,<br>GeneratedAt,<br>ProjectId</div></div>
+  </div>
+
+  <!-- ── Web Frontend Pages ── -->
+  <h2>Web Frontend Pages</h2>
+  <div class="card-grid">
+    <div class="card-sm"><h4>Dashboard</h4><p style="font-size:.82rem;color:#64748b">Health gauge, action timeline, quick instruction input. Live updates via SignalR.</p></div>
+    <div class="card-sm"><h4>Chat</h4><p style="font-size:.82rem;color:#64748b">ReAct step visualization with color-coded phases: Amber=Thinking, Violet=Planning, Blue=Acting, Emerald=Observing.</p></div>
+    <div class="card-sm"><h4>Tasks (Kanban)</h4><p style="font-size:.82rem;color:#64748b">Drag-and-drop board with 4 columns: To Do, In Progress, Done, Blocked. Priority selector for new tasks.</p></div>
+    <div class="card-sm"><h4>Memory Viewer</h4><p style="font-size:.82rem;color:#64748b">3-tab view for Short-Term, Working, and Long-Term memory. Shows relevance scores and timestamps.</p></div>
+    <div class="card-sm"><h4>Reports</h4><p style="font-size:.82rem;color:#64748b">Generate reports by type (status/daily/weekly/standup/sprint). Rendered as styled Markdown.</p></div>
+  </div>
+
+  <!-- ── Docker ── -->
+  <h2>Docker Compose (4 Services)</h2>
+  <pre>services:
+  frontend:   build: ./frontend    ports: ["3002:3000"]
+  backend:    build: ./backend     ports: ["5002:5000"]
+  agent-core: build: ./agent-core  ports: ["8001:8001"]
+  mobile:     build: ./mobile      ports: ["19006:19006"]</pre>
+
+  <!-- ════════════════════════════════
+       REQUIRED SETTINGS — English
+  ════════════════════════════════ -->
+  <div class="settings-dev">
+    <h2>Required Settings — Development Mode</h2>
+    <div class="note-dev">The agent works fully in <strong>rule-based mode without any API key</strong>. All 5 tools are functional. <code>OPENAI_API_KEY</code> is optional and only adds LLM-powered natural language reasoning.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Setting</th><th>Where to Set</th><th>How to Get / Value</th><th>Required?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>Agent Core <code>.env</code> or shell</td><td>Sign up at <a href="https://platform.openai.com">platform.openai.com</a> → API Keys → Create new. Free tier: $5 credit. GPT-4o-mini costs $0.15/1M input tokens.</td><td><span class="badge-opt">Optional</span></td></tr>
+          <tr><td><code>DOTNET_API_URL</code></td><td>Agent Core <code>.env</code></td><td><code>http://localhost:5002</code> — agent calls .NET backend for real task data</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:5002</code> — frontend connects to .NET backend</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_AGENT_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:8001</code> — frontend connects to Agent Core</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>AgentCore__BaseUrl</code></td><td>Backend <code>appsettings.json</code></td><td><code>http://localhost:8001</code> — .NET backend calls Agent Core</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td>Backend <code>appsettings.json</code></td><td><code>Data Source=taskpilot.db</code> — SQLite file path (auto-created with seed data)</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td>Backend shell / <code>launchSettings.json</code></td><td><code>Development</code></td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td><code>AGENT_PORT</code></td><td>Agent Core shell / <code>.env</code></td><td><code>8001</code> — Python FastAPI port</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Mobile <code>API_URL</code></td><td><code>mobile/constants.ts</code></td><td><code>http://localhost:5002</code> — optional, only if using the Expo mobile app</td><td><span class="badge-opt">Optional</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-dev">
+      <strong>Without OPENAI_API_KEY:</strong> Agent uses rule-based mode — all 5 tools work, keyword routing handles all built-in workflows.<br>
+      <strong>With OPENAI_API_KEY:</strong> Agent uses GPT-4o-mini for reasoning — enhanced natural language understanding and dynamic tool selection.<br>
+      <strong>SQLite:</strong> Auto-created and seeded with 1 project + 8 tasks on first backend startup.
+    </div>
+  </div>
+
+  <div class="settings-prod">
+    <h2>Required Settings — Production (Free Tier)</h2>
+    <div class="note-prod">All services listed below have <strong>free tiers sufficient for a portfolio demo</strong>. Staying in rule-based mode means $0 LLM cost forever.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Setting / Service</th><th>Free Option</th><th>Notes</th><th>Required?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI free $5 credit, or Groq Cloud free tier</td><td>For Groq free: set <code>OPENAI_BASE_URL=https://api.groq.com/openai/v1</code> and <code>OPENAI_MODEL=llama3-8b-8192</code> in planner.py. Completely free. Or stay rule-based ($0).</td><td><span class="badge-opt">Optional</span></td></tr>
+          <tr><td>Backend + Agent Hosting</td><td>Railway free tier · Fly.io (3 VMs) · Render free · Oracle Cloud Always Free VM</td><td>.NET needs ~512 MB RAM. Python agent may need 512 MB+; Railway/Fly.io paid may be needed for agent. Oracle Always Free gives 4 GB ARM VM — ideal for both.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Frontend Hosting</td><td>Vercel free tier · Netlify free tier</td><td>Vercel is the perfect fit for Next.js. Set <code>NEXT_PUBLIC_API_URL</code> and <code>NEXT_PUBLIC_AGENT_URL</code> as Vercel environment variables.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Mobile App</td><td>Expo Go (development) · Expo EAS Build free (30 builds/month)</td><td>Use Expo Go for demos. For production APK/IPA use EAS Build free tier.</td><td><span class="badge-opt">Optional</span></td></tr>
+          <tr><td>Database</td><td>SQLite (any single server) · Supabase free tier (PostgreSQL)</td><td>SQLite works on Railway/Fly.io/Render single-instance. Use Supabase if you need a managed PostgreSQL with a free tier.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>SignalR / WebSockets</td><td>Any host that supports WebSockets</td><td><strong>Note:</strong> Vercel Edge does NOT support WebSockets. Host the .NET backend on Railway, Fly.io, or Render which all support long-lived WebSocket connections.</td><td><span class="badge-req">Required</span></td></tr>
+          <tr><td>Docker Compose on VPS</td><td>DigitalOcean $4/mo (512 MB) · Oracle Cloud Always Free (4 GB ARM)</td><td>Run all 4 services on a single VPS with Docker Compose. Oracle Always Free is the best zero-cost option.</td><td><span class="badge-opt">Optional</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /lang-en -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     O'ZBEK
+═══════════════════════════════════════════════════════════ -->
+<div id="lang-uz" class="lang-section">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">Loyiha 3 · AI Agent</div>
+    <h1><span>TaskPilot</span> — Ishlab Chiqish Jarayoni<br>va Arxitektura</h1>
+    <p>ReAct fikrlash tsikli va 4 qatlamli ko'p tilli arxitekturaga asoslangan avtonom loyiha boshqaruvi AI agenti.</p>
+  </div>
+
+  <!-- ── Umumiy sharh ── -->
+  <h2>Loyihaga Umumiy Sharh</h2>
+  <div class="card">
+    <p>Muhandislar vaqtining <strong>60% dan ortiq qismi</strong> takroriy loyiha boshqaruvi ishlariga sarflanadi: xato triage, holat hisoboti, vazifa taqsimlash va kundalik yig'ilishga tayyorgarlik. <strong>TaskPilot</strong> bu yukni to'liq avtonomlashtirilgan AI agent yordamida bartaraf etadi — agent fikrlab, rejalashtirub, harakat qilib, kuzatib va eslab, PM ishlarini to'liq bajaradi.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="val">4</div><div class="lbl">Xizmat Qatlamlari</div></div>
+    <div class="stat"><div class="val">~80</div><div class="lbl">Manba Fayllari</div></div>
+    <div class="stat"><div class="val">4</div><div class="lbl">Dasturlash Tillari</div></div>
+    <div class="stat"><div class="val">5</div><div class="lbl">Agent Vositalari</div></div>
+    <div class="stat"><div class="val">3</div><div class="lbl">Xotira Qatlamlari</div></div>
+    <div class="stat"><div class="val">6</div><div class="lbl">ReAct Bosqichlari</div></div>
+  </div>
+
+  <!-- ── Arxitektura ── -->
+  <h2>4 Qatlamli Arxitektura</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>1-qatlam — Veb Frontend</h4>
+      <p style="font-size:.85rem;color:#94a3b8">Next.js 14 · Port <code>3002</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">Boshqaruv paneli, Chat, Kanban vazifalar, Xotira ko'ruvchi, Hisobotlar. .NET backend bilan REST va Agent Core bilan WebSocket orqali ulanadi.</p>
+    </div>
+    <div class="card-sm">
+      <h4>2-qatlam — Mobil</h4>
+      <p style="font-size:.85rem;color:#94a3b8">React Native / Expo · Port <code>19006</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">iOS/Android uchun ko'p platformali hamroh ilova. React Navigation 6.x navigatsiyasi. 5002-portdagi .NET API ga ulanadi.</p>
+    </div>
+    <div class="card-sm">
+      <h4>3-qatlam — .NET 8 API</h4>
+      <p style="font-size:.85rem;color:#94a3b8">.NET 8 / EF Core · Port <code>5002</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">REST API + SignalR hub. SQLite da Loyihalar, Vazifalar, AgentSessiyalar, Xotiralar, Hisobotlarni boshqaradi. Birinchi ishga tushirishda 1 loyiha + 8 vazifa bilan to'ldiriladi.</p>
+    </div>
+    <div class="card-sm">
+      <h4>4-qatlam — Python Agent Yadrosi</h4>
+      <p style="font-size:.85rem;color:#94a3b8">FastAPI / Python 3.11 · Port <code>8001</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">Miya. ReAct tsikli, Rejalashtiruvchi, XotiraManageri va barcha 5 vositani joylashtiradi. Hodisalarni WebSocket orqali uzatadi.</p>
+    </div>
+  </div>
+
+  <!-- ── Texnologiya to'plami ── -->
+  <h2>Texnologiya To'plami</h2>
+  <div class="card">
+    <div class="tech-group">
+      <div class="layer">Veb Frontend</div>
+      <div class="pills">
+        <span class="pill accent">Next.js 14.1.0</span>
+        <span class="pill accent">React 18.2.0</span>
+        <span class="pill accent">TypeScript 5.3.3</span>
+        <span class="pill">Tailwind CSS 3.4.1</span>
+        <span class="pill">@microsoft/signalr 8.0.0</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">Mobil</div>
+      <div class="pills">
+        <span class="pill accent">React Native 0.73.4</span>
+        <span class="pill accent">Expo 50.0.6</span>
+        <span class="pill">@react-navigation 6.x</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">Backend API</div>
+      <div class="pills">
+        <span class="pill accent">.NET 8</span>
+        <span class="pill">EF Core 8.0.2</span>
+        <span class="pill">SQLite</span>
+        <span class="pill">SignalR 8.0.2</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">Agent Yadrosi</div>
+      <div class="pills">
+        <span class="pill accent">Python 3.11</span>
+        <span class="pill accent">FastAPI 0.109.2</span>
+        <span class="pill">Uvicorn 0.27.1</span>
+        <span class="pill">Pydantic 2.6.1</span>
+        <span class="pill">httpx 0.26.0</span>
+        <span class="pill">OpenAI SDK 1.12.0</span>
+        <span class="pill">NumPy</span>
+        <span class="pill">scikit-learn 1.4.0</span>
+        <span class="pill">tiktoken 0.6.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ReAct Tsikli ── -->
+  <h2>ReAct Tsikli — 6 Bosqich (maksimal 10 takrorlash)</h2>
+  <div class="card" style="margin-bottom:20px">
+    <p style="color:#94a3b8;font-size:.9rem">Agent <strong>Mulohaza → Rejalashtirish → Harakat → Kuzatish → Eslab Qolish → Tekshirish</strong> tsiklini bajaradi. Har bir takrorlash maqsadni yakunlaydi yoki kuzatuvlarini keyingi mulohaza bosqichiga qaytaradi.</p>
+  </div>
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-num">1</div>
+      <div class="phase-body">
+        <div class="name">MULOHAZA — <code>Planner.reason()</code> → Fikr</div>
+        <div class="desc">Ko'rsatmani xotira konteksti va oldingi kuzatuvlar bilan birlashtirgan holda tahlil qiladi. Muammoni belgilaydigan va qanday ma'lumot kerakligini aniqlash uchun tabiiy til fikri yaratadi.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">2</div>
+      <div class="phase-body">
+        <div class="name">REJALASHTIRISH — <code>Planner.plan()</code> → Vosita Chaqiruvlari bilan Reja</div>
+        <div class="desc">Fikrni tuzilgan rejaga aylantiradi: maqsad bayoni + tartiblangan qadamlar + argumentlari bilan aniq vosita chaqiruvlari.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">3</div>
+      <div class="phase-body">
+        <div class="name">HARAKAT — <code>AgentLoop._execute_tool()</code> → Natijalar</div>
+        <div class="desc">Har bir rejalashtirilgan vosita chaqiruvini tegishli Tool sinfiga yuboradi. <code>tool.execute(arguments)</code> ni chaqiradi va xom natija yukini to'playdi.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">4</div>
+      <div class="phase-body">
+        <div class="name">KUZATISH — <code>AgentLoop._create_observation()</code></div>
+        <div class="desc">Xom vosita natijalarini nima sodir bo'lgani va nima o'rganilgani haqida qisqacha tabiiy til kuzatuviga sintez qiladi.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">5</div>
+      <div class="phase-body">
+        <div class="name">ESLAB QOLISH — <code>MemoryManager.store_interaction()</code></div>
+        <div class="desc">O'zaro ta'sirni qisqa muddatli va ish xotirasida saqlaydi. Muhim yozuvlar (yuqori ahamiyat ballari) embedding bilan uzoq muddatli xotiraga ko'tariladi.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">6</div>
+      <div class="phase-body">
+        <div class="name">TEKSHIRISH — <code>Planner.check_completion()</code> → bool</div>
+        <div class="desc">Oxirgi kuzatuvdagi yakunlash kalit so'zlarini aniqlaydi. <code>OPENAI_API_KEY</code> o'rnatilganda, semantik tekshirish uchun LLM ham chaqiriladi. Tsikldan chiqish uchun <code>True</code> yoki qayta takrorlash uchun <code>False</code> qaytaradi.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Rejalashtiruvchi Ikki Rejim ── -->
+  <h2>Rejalashtiruvchi — Ikki Rejim</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>LLM Rejimi (GPT-4o-mini)</h4>
+      <p style="font-size:.83rem;color:#94a3b8"><code>OPENAI_API_KEY</code> o'rnatilganda faollashadi. Ochiq fikrlash va dinamik vosita tanlash uchun GPT-4o-mini dan foydalanadi. Noaniq yoki murakkab ko'rsatmalar uchun eng yaxshi.</p>
+    </div>
+    <div class="card-sm">
+      <h4>Qoida Asosidagi Rejim (Kalit So'z Evristikasi)</h4>
+      <p style="font-size:.83rem;color:#94a3b8">Hech qanday API kalitisiz ishlaydi. Kalit so'z yo'naltirish:</p>
+      <ul style="font-size:.8rem;color:#64748b;padding-left:16px;margin-top:8px">
+        <li><code>triage/bug</code> → xato triage ish oqimi</li>
+        <li><code>report</code> → hisobot yaratish</li>
+        <li><code>assign</code> → taqsimlash ish oqimi</li>
+        <li><code>status/standup</code> → kundalik xulosa</li>
+        <li><code>create task</code> → vazifa yaratish</li>
+        <li><code>analyze/code</code> → kod tahlili</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 5 Vosita ── -->
+  <h2>5 ta Agent Vositasi</h2>
+  <div class="card-grid">
+    <div class="tool-card">
+      <div class="tool-name">TaskManagerTool (Vazifa Boshqaruvchi)</div>
+      <div class="tool-ops">
+        <span class="op-tag">list</span><span class="op-tag">create</span><span class="op-tag">update</span><span class="op-tag">assign</span><span class="op-tag">delete</span><span class="op-tag">update_batch</span><span class="op-tag">assign_batch</span>
+      </div>
+      <div class="tool-desc">Asosiy manba sifatida .NET backend REST API ga murojaat qiladi. Backend mavjud bo'lmaganda 8 ta namunali vazifa bilan ekilgan xotira ichidagi mock do'koriga murojaat qiladi.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">CodeAnalyzerTool (Kod Tahlilchisi)</div>
+      <div class="tool-ops">
+        <span class="op-tag">analyze</span><span class="op-tag">find_issues</span><span class="op-tag">metrics</span><span class="op-tag">review</span>
+      </div>
+      <div class="tool-desc">Qamrov: to'liq / frontend / backend / agent. Jiddiylik darajasi, joylashuvi, satr raqami va taklif bilan tuzilgan muammo obyektlarini qaytaradi.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">ReportGeneratorTool (Hisobot Yaratuvchi)</div>
+      <div class="tool-ops">
+        <span class="op-tag">generate</span><span class="op-tag">list</span>
+      </div>
+      <div class="tool-desc">Turlar: kundalik / haftalik / kundalik yig'ilish / sprint / holat. Metrika, xulosalar va harakatlar ro'yxati bilan Markdown hisobotlari yaratadi.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">WebSearcherTool (Veb Qidiruvchi)</div>
+      <div class="tool-ops">
+        <span class="op-tag">search</span><span class="op-tag">lookup</span>
+      </div>
+      <div class="tool-desc">Kontekstual mock natijalar + xato ustuvorliklari, agile metodologiyasi va CI/CD eng yaxshi amaliyotlarini qamrab oluvchi ichki bilimlar bazasi.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">NotificationTool (Bildirishnoma)</div>
+      <div class="tool-ops">
+        <span class="op-tag">send</span><span class="op-tag">send_batch</span><span class="op-tag">list_sent</span><span class="op-tag">clear</span>
+      </div>
+      <div class="tool-desc">Shoshilinchlik darajalari: past / oddiy / yuqori / kritik. Xotira ichidagi bildirishnoma jurnali. Ish oqimlarini bajarganidan so'ng jamoa a'zolarini ogohlantirish uchun ishlatiladi.</div>
+    </div>
+  </div>
+
+  <!-- ── Xotira ── -->
+  <h2>3 Qatlamli Xotira Tizimi</h2>
+  <div class="mem-grid">
+    <div class="mem-card short">
+      <div class="mem-title">Qisqa Muddatli Xotira</div>
+      <ul class="mem-detail">
+        <li>Hajm: <strong>20 yozuv</strong></li>
+        <li>Ko'chirish: FIFO (eng eski o'chiriladi)</li>
+        <li>Muhim yozuvlar uzoq muddatli xotiraga ko'tariladi</li>
+        <li>Qidiruv og'irligi: <strong>1.5×</strong></li>
+      </ul>
+    </div>
+    <div class="mem-card working">
+      <div class="mem-title">Ish Xotirasi</div>
+      <ul class="mem-detail">
+        <li>Hajm: <strong>cheksiz</strong></li>
+        <li>Faqat faol vazifa holati</li>
+        <li>Format: "Harakat: X → Natija: Y"</li>
+        <li>Vazifa tugagach tozalanadi</li>
+        <li>Qidiruv og'irligi: <strong>1.2×</strong></li>
+      </ul>
+    </div>
+    <div class="mem-card long">
+      <div class="mem-title">Uzoq Muddatli Xotira</div>
+      <ul class="mem-detail">
+        <li>Hajm: <strong>500 yozuv</strong></li>
+        <li>128 o'lchamli hash asosidagi embedding</li>
+        <li>Cosinus o'xshashligi qidirish</li>
+        <li>Ko'chirish: LRU</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Holat Mashinasi ── -->
+  <h2>Agent Holat Mashinasi</h2>
+  <div class="card">
+    <div class="states">
+      <span class="state-pill idle">bo'sh</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill thinking">fikrlash</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill planning">rejalashtirish</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill acting">harakat</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill observing">kuzatish</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill completed">yakunlangan</span>
+    </div>
+    <p style="font-size:.83rem;color:#64748b;margin-top:12px">Yakuniy holatlar: <span style="color:#f87171">xato</span> yoki <span style="color:#fb923c">to'xtatilgan</span>. Tsikl majburiy yakunlashdan oldin <em>kuzatish</em> dan <em>fikrlash</em> ga qadar 10 martaga qadar aylanishi mumkin.</p>
+  </div>
+
+  <!-- ── Real Vaqt Hodisalari ── -->
+  <h2>Real Vaqt Hodisalari</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>SignalR Hub Hodisalari (.NET → Veb)</h4>
+      <div class="event-list">
+        <span class="ev">AgentStateChanged</span>
+        <span class="ev">TaskCreated</span>
+        <span class="ev">TaskUpdated</span>
+        <span class="ev">TaskAssigned</span>
+        <span class="ev">TaskDeleted</span>
+      </div>
+    </div>
+    <div class="card-sm">
+      <h4>WebSocket Hodisalari (Agent Yadrosi → Veb)</h4>
+      <div class="event-list">
+        <span class="ev">state_change</span>
+        <span class="ev">thought</span>
+        <span class="ev">plan</span>
+        <span class="ev">action</span>
+        <span class="ev">observation</span>
+        <span class="ev">complete</span>
+        <span class="ev">error</span>
+        <span class="ev">heartbeat</span>
+      </div>
+      <p style="font-size:.78rem;color:#64748b;margin-top:8px">Ulanishni saqlab qolish uchun har 30 soniyada yurak urishi yuboriladi.</p>
+    </div>
+  </div>
+
+  <!-- ── Ma'lumotlar Bazasi ── -->
+  <h2>Ma'lumotlar Bazasi Sxemasi (SQLite — 6 Model)</h2>
+  <div class="schema-grid">
+    <div class="schema-card"><div class="model">Projects (Loyihalar)</div><div class="fields">Id, Name, Description,<br>Status, CreatedAt</div></div>
+    <div class="schema-card"><div class="model">Tasks (Vazifalar)</div><div class="fields">Id, Title, Description,<br>Status, Priority,<br>AssignedTo, ProjectId<br><em style="color:#4ade80">Ekish: 8 vazifa</em></div></div>
+    <div class="schema-card"><div class="model">AgentSessions</div><div class="fields">Id, Instruction,<br>Status, StartedAt,<br>CompletedAt, Result</div></div>
+    <div class="schema-card"><div class="model">AgentActions</div><div class="fields">Id, SessionId,<br>ToolName, Arguments,<br>Result, Timestamp</div></div>
+    <div class="schema-card"><div class="model">Memories (Xotiralar)</div><div class="fields">Id, Content, Type,<br>Importance,<br>Embedding, CreatedAt</div></div>
+    <div class="schema-card"><div class="model">Reports (Hisobotlar)</div><div class="fields">Id, Type, Content,<br>GeneratedAt,<br>ProjectId</div></div>
+  </div>
+
+  <!-- ── Veb Frontend Sahifalari ── -->
+  <h2>Veb Frontend Sahifalari</h2>
+  <div class="card-grid">
+    <div class="card-sm"><h4>Boshqaruv Paneli</h4><p style="font-size:.82rem;color:#64748b">Salomatlik o'lchagichi, harakat vaqt jadvali, tezkor ko'rsatma kiritish. SignalR orqali jonli yangilanishlar.</p></div>
+    <div class="card-sm"><h4>Chat</h4><p style="font-size:.82rem;color:#64748b">Rangkodlangan bosqichlari bilan ReAct qadam vizualizatsiyasi: Sariq=Fikrlash, Binafsha=Rejalashtirish, Ko'k=Harakat, Yashil=Kuzatish.</p></div>
+    <div class="card-sm"><h4>Vazifalar (Kanban)</h4><p style="font-size:.82rem;color:#64748b">4 ustunli sudrab-tashlab qo'yish taxtasi: Bajarilishi Kerak, Jarayonda, Bajarildi, Bloklangan. Yangi vazifalar uchun ustuvorlik tanlash.</p></div>
+    <div class="card-sm"><h4>Xotira Ko'ruvchi</h4><p style="font-size:.82rem;color:#64748b">Qisqa Muddatli, Ish va Uzoq Muddatli xotira uchun 3 yorliqli ko'rinish. Aloqadorlik ballari va vaqt tamg'alarini ko'rsatadi.</p></div>
+    <div class="card-sm"><h4>Hisobotlar</h4><p style="font-size:.82rem;color:#64748b">Hisobotlarni tur bo'yicha yaratish (holat/kundalik/haftalik/standup/sprint). Bezatilgan Markdown sifatida ko'rsatiladi.</p></div>
+  </div>
+
+  <!-- ── Docker ── -->
+  <h2>Docker Compose (4 Xizmat)</h2>
+  <pre>services:
+  frontend:   build: ./frontend    ports: ["3002:3000"]
+  backend:    build: ./backend     ports: ["5002:5000"]
+  agent-core: build: ./agent-core  ports: ["8001:8001"]
+  mobile:     build: ./mobile      ports: ["19006:19006"]</pre>
+
+  <!-- ════════════════════════════════
+       TALAB QILINADIGAN SOZLAMALAR — O'zbek
+  ════════════════════════════════ -->
+  <div class="settings-dev">
+    <h2>Talab Qilinadigan Sozlamalar — Ishlab Chiqish Rejimi</h2>
+    <div class="note-dev">Agent <strong>hech qanday API kalitisiz qoida asosidagi rejimda</strong> to'liq ishlaydi. Barcha 5 ta vosita faoldir. <code>OPENAI_API_KEY</code> ixtiyoriy bo'lib, faqat LLM tomonidan quvvatlangan tabiiy til fikrlashini qo'shadi.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sozlama Nomi</th><th>Qayerda O'rnatish</th><th>Qanday Olish / Qiymat</th><th>Talab?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>Agent Yadrosi <code>.env</code> yoki shell</td><td><a href="https://platform.openai.com">platform.openai.com</a> ga ro'yxatdan o'ting → API Kalitlari → Yangi yaratish. Bepul daraja: $5 kredit. GPT-4o-mini kirish uchun $0.15/1M token.</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+          <tr><td><code>DOTNET_API_URL</code></td><td>Agent Yadrosi <code>.env</code></td><td><code>http://localhost:5002</code> — agent haqiqiy vazifa ma'lumotlari uchun .NET backendga murojaat qiladi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:5002</code> — frontend .NET backendga ulanadi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_AGENT_URL</code></td><td>Frontend <code>.env.local</code></td><td><code>http://localhost:8001</code> — frontend Agent Yadrosi ga ulanadi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>AgentCore__BaseUrl</code></td><td>Backend <code>appsettings.json</code></td><td><code>http://localhost:8001</code> — .NET backend Agent Yadrosi ga murojaat qiladi</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td>Backend <code>appsettings.json</code></td><td><code>Data Source=taskpilot.db</code> — SQLite fayl yo'li (ekish ma'lumotlari bilan avtomatik yaratiladi)</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td>Backend shell / <code>launchSettings.json</code></td><td><code>Development</code></td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td><code>AGENT_PORT</code></td><td>Agent Yadrosi shell / <code>.env</code></td><td><code>8001</code> — Python FastAPI porti</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>Mobil <code>API_URL</code></td><td><code>mobile/constants.ts</code></td><td><code>http://localhost:5002</code> — ixtiyoriy, faqat Expo mobil ilovasi ishlatilganda</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-dev">
+      <strong>OPENAI_API_KEY siz:</strong> Agent qoida asosidagi rejimni ishlatadi — barcha 5 ta vosita ishlaydi, kalit so'z yo'naltirish barcha o'rnatilgan ish oqimlarini boshqaradi.<br>
+      <strong>OPENAI_API_KEY bilan:</strong> Agent fikrlash uchun GPT-4o-mini dan foydalanadi — yaxshilangan tabiiy til tushunish va dinamik vosita tanlash.<br>
+      <strong>SQLite:</strong> Birinchi backend ishga tushirishda 1 loyiha + 8 vazifa bilan avtomatik yaratiladi va ekiiladi.
+    </div>
+  </div>
+
+  <div class="settings-prod">
+    <h2>Talab Qilinadigan Sozlamalar — Ishlab Chiqarish (Bepul Daraja)</h2>
+    <div class="note-prod">Quyida ro'yxatga olingan barcha xizmatlar <strong>portfolio namoyishi uchun yetarli bepul daraja</strong> ga ega. Qoida asosidagi rejimda qolish LLM xarajatlarini abadiy $0 ga tushiradi.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Sozlama / Xizmat</th><th>Bepul Variant</th><th>Izohlar</th><th>Talab?</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI bepul $5 kredit, yoki Groq Cloud bepul daraja</td><td>Groq bepul uchun: planner.py da <code>OPENAI_BASE_URL=https://api.groq.com/openai/v1</code> va <code>OPENAI_MODEL=llama3-8b-8192</code> ni o'rnating. Mutlaqo bepul. Yoki qoida asosida qoling ($0).</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+          <tr><td>Backend + Agent Hosting</td><td>Railway bepul · Fly.io (3 VM) · Render bepul · Oracle Cloud Doim Bepul VM</td><td>.NET taxminan 512 MB RAM talab qiladi. Python agenti 512 MB+ kerak bo'lishi mumkin. Oracle Doim Bepul 4 GB ARM VM beradi — ikkalasi uchun ideal.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>Frontend Hosting</td><td>Vercel bepul daraja · Netlify bepul daraja</td><td>Vercel Next.js uchun mukammal tanlov. <code>NEXT_PUBLIC_API_URL</code> va <code>NEXT_PUBLIC_AGENT_URL</code> ni Vercel muhit o'zgaruvchilari sifatida o'rnating.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>Mobil Ilova</td><td>Expo Go (ishlab chiqish) · Expo EAS Build bepul (oyiga 30 build)</td><td>Namoyish uchun Expo Go dan foydalaning. Ishlab chiqarish APK/IPA uchun EAS Build bepul darajasini ishlating.</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+          <tr><td>Ma'lumotlar Bazasi</td><td>SQLite (har qanday bitta server) · Supabase bepul daraja (PostgreSQL)</td><td>SQLite Railway/Fly.io/Render da bitta nusxada ishlaydi. Boshqariladigan PostgreSQL kerak bo'lsa Supabase dan foydalaning.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>SignalR / WebSocket'lar</td><td>WebSocket larni qo'llab-quvvatlovchi har qanday host</td><td><strong>Eslatma:</strong> Vercel Edge WebSocket larni qo'llab-quvvatlamaydi. .NET backendni uzoq muddatli WebSocket ulanishlarini qo'llab-quvvatlaydigan Railway, Fly.io yoki Render da joylashtiring.</td><td><span class="badge-req">Talab Qilinadi</span></td></tr>
+          <tr><td>VPS da Docker Compose</td><td>DigitalOcean $4/oy (512 MB) · Oracle Cloud Doim Bepul (4 GB ARM)</td><td>Docker Compose bilan bitta VPS da barcha 4 xizmatni ishga tushiring. Oracle Doim Bepul eng yaxshi nol-xarajat variantidir.</td><td><span class="badge-opt">Ixtiyoriy</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /lang-uz -->
+
+
+<!-- ══════════════════════════════════════════════════════════
+     한국어
+═══════════════════════════════════════════════════════════ -->
+<div id="lang-ko" class="lang-section">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">프로젝트 3 · AI 에이전트</div>
+    <h1><span>TaskPilot</span> — 개발 프로세스<br>및 아키텍처</h1>
+    <p>ReAct 추론 루프와 4계층 다중 언어 아키텍처 기반의 자율 프로젝트 관리 AI 에이전트입니다.</p>
+  </div>
+
+  <!-- ── 개요 ── -->
+  <h2>프로젝트 개요</h2>
+  <div class="card">
+    <p>엔지니어들은 반복적인 프로젝트 관리 작업에 <strong>60% 이상의 시간을 낭비합니다</strong>: 버그 분류, 상태 보고, 작업 할당, 스탠드업 준비. <strong>TaskPilot</strong>은 추론하고, 계획하고, 행동하고, 관찰하고, 기억하는 자율 AI 에이전트로 이 모든 부담을 제거합니다.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="val">4</div><div class="lbl">서비스 계층</div></div>
+    <div class="stat"><div class="val">~80</div><div class="lbl">소스 파일</div></div>
+    <div class="stat"><div class="val">4</div><div class="lbl">프로그래밍 언어</div></div>
+    <div class="stat"><div class="val">5</div><div class="lbl">에이전트 도구</div></div>
+    <div class="stat"><div class="val">3</div><div class="lbl">메모리 계층</div></div>
+    <div class="stat"><div class="val">6</div><div class="lbl">ReAct 단계</div></div>
+  </div>
+
+  <!-- ── 아키텍처 ── -->
+  <h2>4계층 아키텍처</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>1계층 — 웹 프론트엔드</h4>
+      <p style="font-size:.85rem;color:#94a3b8">Next.js 14 · 포트 <code>3002</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">대시보드, 채팅, 칸반 작업, 메모리 뷰어, 보고서. .NET 백엔드와 REST로, 에이전트 코어와 WebSocket으로 연결됩니다.</p>
+    </div>
+    <div class="card-sm">
+      <h4>2계층 — 모바일</h4>
+      <p style="font-size:.85rem;color:#94a3b8">React Native / Expo · 포트 <code>19006</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">iOS/Android 크로스 플랫폼 컴패니언 앱. React Navigation 6.x 내비게이션. 포트 5002의 .NET API를 가리킵니다.</p>
+    </div>
+    <div class="card-sm">
+      <h4>3계층 — .NET 8 API</h4>
+      <p style="font-size:.85rem;color:#94a3b8">.NET 8 / EF Core · 포트 <code>5002</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">REST API + SignalR 허브. SQLite에서 프로젝트, 작업, 에이전트 세션, 메모리, 보고서를 관리합니다. 최초 실행 시 1개 프로젝트 + 8개 작업이 자동으로 시드됩니다.</p>
+    </div>
+    <div class="card-sm">
+      <h4>4계층 — Python 에이전트 코어</h4>
+      <p style="font-size:.85rem;color:#94a3b8">FastAPI / Python 3.11 · 포트 <code>8001</code></p>
+      <p style="font-size:.83rem;color:#64748b;margin-top:8px">두뇌 역할. ReAct 루프, 플래너, 메모리 관리자, 5개 도구를 모두 호스팅합니다. WebSocket으로 이벤트를 스트리밍합니다.</p>
+    </div>
+  </div>
+
+  <!-- ── 기술 스택 ── -->
+  <h2>기술 스택</h2>
+  <div class="card">
+    <div class="tech-group">
+      <div class="layer">웹 프론트엔드</div>
+      <div class="pills">
+        <span class="pill accent">Next.js 14.1.0</span>
+        <span class="pill accent">React 18.2.0</span>
+        <span class="pill accent">TypeScript 5.3.3</span>
+        <span class="pill">Tailwind CSS 3.4.1</span>
+        <span class="pill">@microsoft/signalr 8.0.0</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">모바일</div>
+      <div class="pills">
+        <span class="pill accent">React Native 0.73.4</span>
+        <span class="pill accent">Expo 50.0.6</span>
+        <span class="pill">@react-navigation 6.x</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">백엔드 API</div>
+      <div class="pills">
+        <span class="pill accent">.NET 8</span>
+        <span class="pill">EF Core 8.0.2</span>
+        <span class="pill">SQLite</span>
+        <span class="pill">SignalR 8.0.2</span>
+      </div>
+    </div>
+    <div class="tech-group">
+      <div class="layer">에이전트 코어</div>
+      <div class="pills">
+        <span class="pill accent">Python 3.11</span>
+        <span class="pill accent">FastAPI 0.109.2</span>
+        <span class="pill">Uvicorn 0.27.1</span>
+        <span class="pill">Pydantic 2.6.1</span>
+        <span class="pill">httpx 0.26.0</span>
+        <span class="pill">OpenAI SDK 1.12.0</span>
+        <span class="pill">NumPy</span>
+        <span class="pill">scikit-learn 1.4.0</span>
+        <span class="pill">tiktoken 0.6.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ReAct 루프 ── -->
+  <h2>ReAct 루프 — 6단계 (최대 10회 반복)</h2>
+  <div class="card" style="margin-bottom:20px">
+    <p style="color:#94a3b8;font-size:.9rem">에이전트는 <strong>추론 → 계획 → 행동 → 관찰 → 기억 → 확인</strong> 사이클을 실행합니다. 각 반복은 목표를 완료하거나 관찰 결과를 다음 추론 단계로 피드백합니다.</p>
+  </div>
+  <div class="phases">
+    <div class="phase">
+      <div class="phase-num">1</div>
+      <div class="phase-body">
+        <div class="name">추론 — <code>Planner.reason()</code> → 사고</div>
+        <div class="desc">명령을 메모리 컨텍스트 및 이전 관찰 결과와 결합하여 분석합니다. 문제를 정의하고 필요한 정보를 식별하는 자연어 사고를 생성합니다.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">2</div>
+      <div class="phase-body">
+        <div class="name">계획 — <code>Planner.plan()</code> → 도구 호출 포함 계획</div>
+        <div class="desc">사고를 구조화된 계획으로 변환합니다: 목표 설명 + 순서가 있는 단계 + 인수가 포함된 특정 도구 호출.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">3</div>
+      <div class="phase-body">
+        <div class="name">행동 — <code>AgentLoop._execute_tool()</code> → 작업 결과</div>
+        <div class="desc">계획된 각 도구 호출을 적절한 Tool 클래스로 디스패치합니다. <code>tool.execute(arguments)</code>를 호출하고 원시 결과 페이로드를 수집합니다.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">4</div>
+      <div class="phase-body">
+        <div class="name">관찰 — <code>AgentLoop._create_observation()</code></div>
+        <div class="desc">원시 도구 결과를 무슨 일이 일어났고 무엇을 배웠는지 포착하는 간결한 자연어 관찰로 합성합니다.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">5</div>
+      <div class="phase-body">
+        <div class="name">기억 — <code>MemoryManager.store_interaction()</code></div>
+        <div class="desc">상호작용을 단기 및 작업 메모리에 저장합니다. 중요한 항목(높은 중요도 점수)은 임베딩과 함께 장기 메모리로 승격됩니다.</div>
+      </div>
+    </div>
+    <div class="phase">
+      <div class="phase-num">6</div>
+      <div class="phase-body">
+        <div class="name">확인 — <code>Planner.check_completion()</code> → bool</div>
+        <div class="desc">마지막 관찰에서 완료 키워드를 감지합니다. <code>OPENAI_API_KEY</code>가 설정된 경우 의미론적 완료 확인을 위해 LLM도 호출합니다. 루프를 종료하려면 <code>True</code>, 다시 반복하려면 <code>False</code>를 반환합니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 플래너 이중 모드 ── -->
+  <h2>플래너 — 이중 모드</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>LLM 모드 (GPT-4o-mini)</h4>
+      <p style="font-size:.83rem;color:#94a3b8"><code>OPENAI_API_KEY</code>가 설정되면 활성화됩니다. 개방형 추론 및 동적 도구 선택을 위해 GPT-4o-mini를 사용합니다. 모호하거나 복잡한 명령에 최적입니다.</p>
+    </div>
+    <div class="card-sm">
+      <h4>규칙 기반 모드 (키워드 휴리스틱)</h4>
+      <p style="font-size:.83rem;color:#94a3b8">API 키 없이도 작동합니다. 키워드 라우팅:</p>
+      <ul style="font-size:.8rem;color:#64748b;padding-left:16px;margin-top:8px">
+        <li><code>triage/bug</code> → 버그 분류 워크플로우</li>
+        <li><code>report</code> → 보고서 생성</li>
+        <li><code>assign</code> → 할당 워크플로우</li>
+        <li><code>status/standup</code> → 스탠드업 요약</li>
+        <li><code>create task</code> → 작업 생성</li>
+        <li><code>analyze/code</code> → 코드 분석</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 5개 도구 ── -->
+  <h2>5개 에이전트 도구</h2>
+  <div class="card-grid">
+    <div class="tool-card">
+      <div class="tool-name">TaskManagerTool (작업 관리 도구)</div>
+      <div class="tool-ops">
+        <span class="op-tag">list</span><span class="op-tag">create</span><span class="op-tag">update</span><span class="op-tag">assign</span><span class="op-tag">delete</span><span class="op-tag">update_batch</span><span class="op-tag">assign_batch</span>
+      </div>
+      <div class="tool-desc">.NET 백엔드 REST API를 기본 소스로 호출합니다. 백엔드를 사용할 수 없을 때는 8개의 대표 작업이 시드된 인메모리 모의 저장소로 폴백합니다.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">CodeAnalyzerTool (코드 분석 도구)</div>
+      <div class="tool-ops">
+        <span class="op-tag">analyze</span><span class="op-tag">find_issues</span><span class="op-tag">metrics</span><span class="op-tag">review</span>
+      </div>
+      <div class="tool-desc">범위: 전체 / 프론트엔드 / 백엔드 / 에이전트. 심각도, 위치, 줄 번호, 제안이 포함된 구조화된 이슈 객체를 반환합니다.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">ReportGeneratorTool (보고서 생성 도구)</div>
+      <div class="tool-ops">
+        <span class="op-tag">generate</span><span class="op-tag">list</span>
+      </div>
+      <div class="tool-desc">유형: 일간 / 주간 / 스탠드업 / 스프린트 / 상태. 메트릭, 요약, 실행 항목이 포함된 Markdown 보고서를 생성합니다.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">WebSearcherTool (웹 검색 도구)</div>
+      <div class="tool-ops">
+        <span class="op-tag">search</span><span class="op-tag">lookup</span>
+      </div>
+      <div class="tool-desc">버그 우선순위, 애자일 방법론, CI/CD 모범 사례를 포괄하는 컨텍스트 기반 모의 결과 + 내부 지식 베이스.</div>
+    </div>
+    <div class="tool-card">
+      <div class="tool-name">NotificationTool (알림 도구)</div>
+      <div class="tool-ops">
+        <span class="op-tag">send</span><span class="op-tag">send_batch</span><span class="op-tag">list_sent</span><span class="op-tag">clear</span>
+      </div>
+      <div class="tool-desc">긴급도 수준: 낮음 / 보통 / 높음 / 긴급. 인메모리 알림 로그. 워크플로우 완료 후 팀 구성원에게 알리는 데 사용됩니다.</div>
+    </div>
+  </div>
+
+  <!-- ── 메모리 ── -->
+  <h2>3계층 메모리 시스템</h2>
+  <div class="mem-grid">
+    <div class="mem-card short">
+      <div class="mem-title">단기 메모리</div>
+      <ul class="mem-detail">
+        <li>용량: <strong>20개 항목</strong></li>
+        <li>제거: FIFO (가장 오래된 것부터)</li>
+        <li>중요한 항목은 장기 메모리로 승격</li>
+        <li>검색 가중치: <strong>1.5×</strong></li>
+      </ul>
+    </div>
+    <div class="mem-card working">
+      <div class="mem-title">작업 메모리</div>
+      <ul class="mem-detail">
+        <li>용량: <strong>무제한</strong></li>
+        <li>활성 작업 상태만 저장</li>
+        <li>형식: "작업: X → 결과: Y"</li>
+        <li>작업 완료 시 초기화</li>
+        <li>검색 가중치: <strong>1.2×</strong></li>
+      </ul>
+    </div>
+    <div class="mem-card long">
+      <div class="mem-title">장기 메모리</div>
+      <ul class="mem-detail">
+        <li>용량: <strong>500개 항목</strong></li>
+        <li>128차원 해시 기반 임베딩</li>
+        <li>코사인 유사도 검색</li>
+        <li>제거: LRU</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 에이전트 상태 기계 ── -->
+  <h2>에이전트 상태 기계</h2>
+  <div class="card">
+    <div class="states">
+      <span class="state-pill idle">대기</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill thinking">추론 중</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill planning">계획 중</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill acting">행동 중</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill observing">관찰 중</span>
+      <span class="state-arrow">→</span>
+      <span class="state-pill completed">완료</span>
+    </div>
+    <p style="font-size:.83rem;color:#64748b;margin-top:12px">종료 상태: <span style="color:#f87171">오류</span> 또는 <span style="color:#fb923c">중지됨</span>. 강제 완료 전까지 <em>관찰 중</em>에서 <em>추론 중</em>으로 최대 10번 순환할 수 있습니다.</p>
+  </div>
+
+  <!-- ── 실시간 이벤트 ── -->
+  <h2>실시간 이벤트</h2>
+  <div class="card-grid">
+    <div class="card-sm">
+      <h4>SignalR 허브 이벤트 (.NET → 웹)</h4>
+      <div class="event-list">
+        <span class="ev">AgentStateChanged</span>
+        <span class="ev">TaskCreated</span>
+        <span class="ev">TaskUpdated</span>
+        <span class="ev">TaskAssigned</span>
+        <span class="ev">TaskDeleted</span>
+      </div>
+    </div>
+    <div class="card-sm">
+      <h4>WebSocket 이벤트 (에이전트 코어 → 웹)</h4>
+      <div class="event-list">
+        <span class="ev">state_change</span>
+        <span class="ev">thought</span>
+        <span class="ev">plan</span>
+        <span class="ev">action</span>
+        <span class="ev">observation</span>
+        <span class="ev">complete</span>
+        <span class="ev">error</span>
+        <span class="ev">heartbeat</span>
+      </div>
+      <p style="font-size:.78rem;color:#64748b;margin-top:8px">연결을 유지하기 위해 30초마다 하트비트가 전송됩니다.</p>
+    </div>
+  </div>
+
+  <!-- ── 데이터베이스 ── -->
+  <h2>데이터베이스 스키마 (SQLite — 6개 모델)</h2>
+  <div class="schema-grid">
+    <div class="schema-card"><div class="model">Projects (프로젝트)</div><div class="fields">Id, Name, Description,<br>Status, CreatedAt</div></div>
+    <div class="schema-card"><div class="model">Tasks (작업)</div><div class="fields">Id, Title, Description,<br>Status, Priority,<br>AssignedTo, ProjectId<br><em style="color:#4ade80">시드: 8개 작업</em></div></div>
+    <div class="schema-card"><div class="model">AgentSessions</div><div class="fields">Id, Instruction,<br>Status, StartedAt,<br>CompletedAt, Result</div></div>
+    <div class="schema-card"><div class="model">AgentActions</div><div class="fields">Id, SessionId,<br>ToolName, Arguments,<br>Result, Timestamp</div></div>
+    <div class="schema-card"><div class="model">Memories (메모리)</div><div class="fields">Id, Content, Type,<br>Importance,<br>Embedding, CreatedAt</div></div>
+    <div class="schema-card"><div class="model">Reports (보고서)</div><div class="fields">Id, Type, Content,<br>GeneratedAt,<br>ProjectId</div></div>
+  </div>
+
+  <!-- ── 웹 프론트엔드 페이지 ── -->
+  <h2>웹 프론트엔드 페이지</h2>
+  <div class="card-grid">
+    <div class="card-sm"><h4>대시보드</h4><p style="font-size:.82rem;color:#64748b">상태 게이지, 액션 타임라인, 빠른 명령 입력. SignalR을 통한 실시간 업데이트.</p></div>
+    <div class="card-sm"><h4>채팅</h4><p style="font-size:.82rem;color:#64748b">색상으로 구분된 단계가 포함된 ReAct 단계 시각화: 황색=추론, 보라색=계획, 파란색=행동, 녹색=관찰.</p></div>
+    <div class="card-sm"><h4>작업 (칸반)</h4><p style="font-size:.82rem;color:#64748b">4열 드래그 앤 드롭 보드: 할 일, 진행 중, 완료, 차단됨. 새 작업에 대한 우선순위 선택기.</p></div>
+    <div class="card-sm"><h4>메모리 뷰어</h4><p style="font-size:.82rem;color:#64748b">단기, 작업, 장기 메모리를 위한 3탭 뷰. 관련성 점수 및 타임스탬프 표시.</p></div>
+    <div class="card-sm"><h4>보고서</h4><p style="font-size:.82rem;color:#64748b">유형별 보고서 생성(상태/일간/주간/스탠드업/스프린트). 스타일링된 Markdown으로 렌더링.</p></div>
+  </div>
+
+  <!-- ── Docker ── -->
+  <h2>Docker Compose (4개 서비스)</h2>
+  <pre>services:
+  frontend:   build: ./frontend    ports: ["3002:3000"]
+  backend:    build: ./backend     ports: ["5002:5000"]
+  agent-core: build: ./agent-core  ports: ["8001:8001"]
+  mobile:     build: ./mobile      ports: ["19006:19006"]</pre>
+
+  <!-- ════════════════════════════════
+       필수 설정 — Korean
+  ════════════════════════════════ -->
+  <div class="settings-dev">
+    <h2>필수 설정 — 개발 모드</h2>
+    <div class="note-dev">에이전트는 <strong>API 키 없이도 규칙 기반 모드에서 완전히 작동합니다</strong>. 5개 도구가 모두 작동합니다. <code>OPENAI_API_KEY</code>는 선택 사항이며 LLM 기반 자연어 추론만 추가합니다.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>설정 이름</th><th>설정 위치</th><th>획득 방법 / 값</th><th>필수 여부</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>에이전트 코어 <code>.env</code> 또는 셸</td><td><a href="https://platform.openai.com">platform.openai.com</a>에 가입 → API 키 → 새로 만들기. 무료 등급: $5 크레딧. GPT-4o-mini 입력 1M 토큰당 $0.15.</td><td><span class="badge-opt">선택</span></td></tr>
+          <tr><td><code>DOTNET_API_URL</code></td><td>에이전트 코어 <code>.env</code></td><td><code>http://localhost:5002</code> — 에이전트가 실제 작업 데이터를 위해 .NET 백엔드를 호출합니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_API_URL</code></td><td>프론트엔드 <code>.env.local</code></td><td><code>http://localhost:5002</code> — 프론트엔드가 .NET 백엔드에 연결됩니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>NEXT_PUBLIC_AGENT_URL</code></td><td>프론트엔드 <code>.env.local</code></td><td><code>http://localhost:8001</code> — 프론트엔드가 에이전트 코어에 직접 연결됩니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>AgentCore__BaseUrl</code></td><td>백엔드 <code>appsettings.json</code></td><td><code>http://localhost:8001</code> — .NET 백엔드가 에이전트 코어를 호출합니다</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td>백엔드 <code>appsettings.json</code></td><td><code>Data Source=taskpilot.db</code> — SQLite 파일 경로 (시드 데이터와 함께 자동 생성)</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>ASPNETCORE_ENVIRONMENT</code></td><td>백엔드 셸 / <code>launchSettings.json</code></td><td><code>Development</code></td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td><code>AGENT_PORT</code></td><td>에이전트 코어 셸 / <code>.env</code></td><td><code>8001</code> — Python FastAPI 포트</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>모바일 <code>API_URL</code></td><td><code>mobile/constants.ts</code></td><td><code>http://localhost:5002</code> — 선택 사항, Expo 모바일 앱 사용 시에만</td><td><span class="badge-opt">선택</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note-dev">
+      <strong>OPENAI_API_KEY 없이:</strong> 에이전트가 규칙 기반 모드를 사용합니다 — 5개 도구가 모두 작동하고, 키워드 라우팅이 모든 내장 워크플로우를 처리합니다.<br>
+      <strong>OPENAI_API_KEY 포함:</strong> 에이전트가 추론에 GPT-4o-mini를 사용합니다 — 향상된 자연어 이해 및 동적 도구 선택.<br>
+      <strong>SQLite:</strong> 첫 번째 백엔드 시작 시 1개 프로젝트 + 8개 작업이 자동으로 생성 및 시드됩니다.
+    </div>
+  </div>
+
+  <div class="settings-prod">
+    <h2>필수 설정 — 프로덕션 (무료 등급)</h2>
+    <div class="note-prod">아래에 나열된 모든 서비스는 <strong>포트폴리오 데모에 충분한 무료 등급</strong>을 제공합니다. 규칙 기반 모드를 유지하면 LLM 비용이 영원히 $0이 됩니다.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>설정 / 서비스</th><th>무료 옵션</th><th>참고사항</th><th>필수 여부</th></tr></thead>
+        <tbody>
+          <tr><td><code>OPENAI_API_KEY</code></td><td>OpenAI 무료 $5 크레딧, 또는 Groq Cloud 무료 등급</td><td>Groq 무료 사용: planner.py에 <code>OPENAI_BASE_URL=https://api.groq.com/openai/v1</code> 및 <code>OPENAI_MODEL=llama3-8b-8192</code>를 설정합니다. 완전 무료. 또는 규칙 기반으로 유지 ($0).</td><td><span class="badge-opt">선택</span></td></tr>
+          <tr><td>백엔드 + 에이전트 호스팅</td><td>Railway 무료 · Fly.io (3 VM) · Render 무료 · Oracle Cloud 항상 무료 VM</td><td>.NET은 약 512 MB RAM이 필요합니다. Python 에이전트는 512 MB+ 필요할 수 있습니다. Oracle 항상 무료는 4 GB ARM VM을 제공합니다 — 두 서비스 모두에 이상적입니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>프론트엔드 호스팅</td><td>Vercel 무료 등급 · Netlify 무료 등급</td><td>Vercel은 Next.js에 완벽합니다. <code>NEXT_PUBLIC_API_URL</code> 및 <code>NEXT_PUBLIC_AGENT_URL</code>을 Vercel 환경 변수로 설정합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>모바일 앱</td><td>Expo Go (개발) · Expo EAS Build 무료 (월 30회 빌드)</td><td>데모에는 Expo Go를 사용합니다. 프로덕션 APK/IPA에는 EAS Build 무료 등급을 사용합니다.</td><td><span class="badge-opt">선택</span></td></tr>
+          <tr><td>데이터베이스</td><td>SQLite (단일 서버) · Supabase 무료 등급 (PostgreSQL)</td><td>SQLite는 Railway/Fly.io/Render 단일 인스턴스에서 작동합니다. 관리형 PostgreSQL이 필요하면 Supabase를 사용합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>SignalR / WebSocket</td><td>WebSocket을 지원하는 모든 호스트</td><td><strong>참고:</strong> Vercel Edge는 WebSocket을 지원하지 않습니다. 장기 WebSocket 연결을 지원하는 Railway, Fly.io 또는 Render에 .NET 백엔드를 호스팅합니다.</td><td><span class="badge-req">필수</span></td></tr>
+          <tr><td>VPS의 Docker Compose</td><td>DigitalOcean $4/월 (512 MB) · Oracle Cloud 항상 무료 (4 GB ARM)</td><td>Docker Compose로 단일 VPS에서 4개 서비스를 모두 실행합니다. Oracle 항상 무료가 최고의 비용 제로 옵션입니다.</td><td><span class="badge-opt">선택</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /container -->
+</div><!-- /lang-ko -->
+
+<footer>
+  TaskPilot · Autonomous Project Management AI Agent · Portfolio Project 3
+</footer>
+
+<script>
+function switchLang(lang) {
+  document.querySelectorAll('.lang-section').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.lang-btn').forEach(function(btn) {
+    btn.classList.remove('active');
+  });
+  document.getElementById('lang-' + lang).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

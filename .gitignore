@@ -1,0 +1,51 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node
+node_modules/
+.next/
+dist/
+.expo/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# Mobile
+ios/Pods/
+android/build/
+*.apk
+*.ipa
+
+# Docker volumes
+data/
+
+# Logs
+*.log

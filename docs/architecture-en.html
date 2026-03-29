@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskPilot AI Agent - Architecture Documentation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+        a { color: #10b981; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .hero {
+            background: linear-gradient(135deg, #0d2818 0%, #064e3b 30%, #0f172a 100%);
+            padding: 80px 40px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.4);
+            color: #6ee7b7;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #34d399, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            animation: shimmer 4s ease-in-out infinite;
+        }
+        @keyframes shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
+        .hero-tagline { font-size: 1.2rem; color: #94a3b8; max-width: 720px; margin: 0 auto 32px; }
+        .lang-badge {
+            display: inline-block;
+            background: #3b82f6;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+        }
+        .stats-row { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin-top: 8px; }
+        .stat-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 24px; min-width: 110px; }
+        .stat-num { font-size: 1.6rem; font-weight: 800; color: #34d399; }
+        .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+        .section { padding: 56px 0; }
+        .section-title {
+            font-size: 1.7rem; font-weight: 700; color: #f1f5f9; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-title::after {
+            content: ''; flex: 1; height: 2px;
+            background: linear-gradient(90deg, rgba(16,185,129,0.5), transparent);
+            border-radius: 2px; margin-left: 12px;
+        }
+        .section-subtitle { color: #64748b; margin-bottom: 32px; font-size: 0.97rem; }
+
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s; }
+        .card:hover { border-color: #10b981; box-shadow: 0 0 24px rgba(16,185,129,0.12); transform: translateY(-2px); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+
+        /* ReAct Loop */
+        .react-loop {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 32px;
+            position: relative;
+        }
+        .loop-step {
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: default;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .loop-step:hover { border-color: #10b981; background: rgba(16,185,129,0.1); box-shadow: 0 0 16px rgba(16,185,129,0.25); }
+        .loop-step .ls-icon { font-size: 1.2rem; }
+        .loop-step .ls-label { font-size: 0.65rem; font-weight: 700; color: #94a3b8; margin-top: 3px; text-transform: uppercase; }
+        .loop-arrow { color: #475569; font-size: 1.2rem; align-self: center; }
+
+        .arch-diagram { background: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 40px 24px; margin: 24px 0; }
+        .arch-layer { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+        .arch-box { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 14px 22px; text-align: center; min-width: 160px; transition: all 0.2s; }
+        .arch-box.blue { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+        .arch-box.purple { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+        .arch-box.green { border-color: #10b981; background: rgba(16,185,129,0.08); }
+        .arch-box.orange { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+        .arch-box.teal { border-color: #06b6d4; background: rgba(6,182,212,0.08); }
+        .arch-box-title { font-weight: 700; font-size: 0.9rem; color: #f1f5f9; }
+        .arch-box-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 3px; }
+        .arch-arrow { text-align: center; color: #475569; font-size: 1.4rem; margin: 4px 0; }
+        .arch-label { text-align: center; font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 8px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        thead th { background: #1e293b; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 16px; text-align: left; border-bottom: 2px solid #334155; }
+        tbody td { padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 0.9rem; color: #cbd5e1; vertical-align: top; }
+        tbody tr:hover { background: rgba(16,185,129,0.05); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .badge-orange { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .badge-teal { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3); }
+        .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+        .code-block { background: #020617; border: 1px solid #1e293b; border-radius: 12px; padding: 20px 24px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; color: #e2e8f0; overflow-x: auto; margin: 12px 0; line-height: 1.7; }
+        .code-block .comment { color: #475569; }
+        .code-block .cmd { color: #34d399; }
+        .code-block .str { color: #fbbf24; }
+
+        .feature-item { display: flex; gap: 16px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid #1e293b; }
+        .feature-item:last-child { border-bottom: none; }
+        .feature-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+        .feature-title { font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+        .feature-desc { font-size: 0.9rem; color: #94a3b8; }
+
+        .problem-list { list-style: none; margin-top: 16px; }
+        .problem-list li { padding: 12px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; display: flex; align-items: flex-start; gap: 10px; font-size: 0.95rem; }
+        .problem-list li::before { content: '⚠'; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+        .security-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        @media (max-width: 600px) { .security-grid { grid-template-columns: 1fr; } }
+        .security-card { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 16px 18px; }
+        .security-card h4 { color: #34d399; font-size: 0.9rem; margin-bottom: 6px; }
+        .security-card p { color: #94a3b8; font-size: 0.85rem; }
+
+        .memory-tier { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+        @media (max-width: 700px) { .memory-tier { grid-template-columns: 1fr; } }
+        .memory-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+        .memory-card h4 { color: #34d399; margin-bottom: 8px; font-size: 0.9rem; }
+        .memory-card .mc-detail { font-size: 0.82rem; color: #64748b; }
+        .memory-card .mc-cap { font-size: 1.3rem; font-weight: 800; color: #f1f5f9; margin: 6px 0; }
+
+        .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+        @media (max-width: 600px) { .tool-grid { grid-template-columns: 1fr; } }
+        .tool-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+        .tool-icon { font-size: 1.3rem; flex-shrink: 0; }
+        .tool-name { font-weight: 700; color: #f1f5f9; font-size: 0.88rem; }
+        .tool-desc { font-size: 0.8rem; color: #64748b; margin-top: 3px; }
+
+        footer { background: #020617; border-top: 1px solid #1e293b; padding: 32px 40px; text-align: center; color: #475569; font-size: 0.85rem; }
+        footer span { color: #10b981; }
+        hr { border: none; border-top: 1px solid #1e293b; margin: 0; }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-badge">Project 3 &nbsp;·&nbsp; Autonomous AI Agent</div>
+    <h1>TaskPilot</h1>
+    <p class="hero-tagline">Autonomous AI Agent for project management using the ReAct (Reason-Act-Observe) loop — with 3-tier memory, 5 tools, and real-time WebSocket streaming across web and mobile.</p>
+    <div><span class="lang-badge">🇬🇧 English</span></div>
+    <div class="stats-row">
+        <div class="stat-item"><div class="stat-num">~80</div><div class="stat-label">Files</div></div>
+        <div class="stat-item"><div class="stat-num">4</div><div class="stat-label">Arch Layers</div></div>
+        <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">Agent Tools</div></div>
+        <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">Memory Tiers</div></div>
+        <div class="stat-item"><div class="stat-num">6</div><div class="stat-label">ReAct Phases</div></div>
+    </div>
+</section>
+
+<hr>
+
+<div class="container">
+
+    <!-- PROBLEM -->
+    <section class="section">
+        <h2 class="section-title">🎯 Problem Statement</h2>
+        <p class="section-subtitle">Why reactive chatbots fail at complex project management</p>
+        <div class="card">
+            <p style="color:#94a3b8; margin-bottom:16px;">Traditional chatbots are stateless and reactive — they answer one question at a time without memory, planning, or the ability to take multi-step actions. Project management involves coordination across tasks, timelines, priorities, and team members that requires persistent state and autonomous decision-making.</p>
+            <ul class="problem-list">
+                <li>Chatbots cannot plan: they respond to individual prompts but cannot decompose a high-level goal into a sequence of executable steps.</li>
+                <li>No persistent memory: each conversation starts fresh, requiring users to repeat context that an agent should remember from previous sessions.</li>
+                <li>No tool access: chatbots cannot actually create tasks, query databases, generate reports, or send notifications — they can only describe how to do these things.</li>
+                <li>No self-correction: if an action fails, a simple chatbot cannot observe the failure, reason about it, and try a different approach automatically.</li>
+                <li>Mobile and real-time gap: project management happens across devices and requires push notifications and live updates — features absent from API-only chatbots.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🏗 Architecture</h2>
+        <p class="section-subtitle">Four-layer architecture spanning web, mobile, .NET orchestration, and Python agent core</p>
+        <div class="arch-diagram">
+            <div class="arch-label">Client Layer</div>
+            <div class="arch-layer">
+                <div class="arch-box blue">
+                    <div class="arch-box-title">Next.js 14 Web</div>
+                    <div class="arch-box-sub">Port 3002 · Kanban + Agent UI</div>
+                </div>
+                <div class="arch-box teal">
+                    <div class="arch-box-title">React Native / Expo</div>
+                    <div class="arch-box-sub">Mobile · Push notifications</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ REST + WebSocket (SignalR)</div>
+            <div class="arch-label">Orchestration Layer</div>
+            <div class="arch-layer">
+                <div class="arch-box purple">
+                    <div class="arch-box-title">.NET 8 Web API</div>
+                    <div class="arch-box-sub">Port 5002 · Task management &amp; SignalR hub</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ REST API / JSON</div>
+            <div class="arch-label">Agent Core Layer</div>
+            <div class="arch-layer">
+                <div class="arch-box green">
+                    <div class="arch-box-title">Python FastAPI</div>
+                    <div class="arch-box-sub">Port 8001 · ReAct loop engine</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ Optional LLM API</div>
+            <div class="arch-label">Intelligence Layer</div>
+            <div class="arch-layer">
+                <div class="arch-box orange">
+                    <div class="arch-box-title">OpenAI SDK</div>
+                    <div class="arch-box-sub">GPT-4o-mini (optional) or rule-based fallback</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- REACT LOOP -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔄 ReAct Loop</h2>
+        <p class="section-subtitle">6-phase autonomous reasoning and action cycle</p>
+        <div class="card">
+            <div class="react-loop">
+                <div class="loop-step" style="border-color:#60a5fa; background:rgba(59,130,246,0.1);">
+                    <div class="ls-icon">🧠</div>
+                    <div class="ls-label">Reason</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#a78bfa; background:rgba(139,92,246,0.1);">
+                    <div class="ls-icon">📋</div>
+                    <div class="ls-label">Plan</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#34d399; background:rgba(16,185,129,0.1);">
+                    <div class="ls-icon">⚡</div>
+                    <div class="ls-label">Act</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#fbbf24; background:rgba(245,158,11,0.1);">
+                    <div class="ls-icon">👁</div>
+                    <div class="ls-label">Observe</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#f87171; background:rgba(239,68,68,0.1);">
+                    <div class="ls-icon">💾</div>
+                    <div class="ls-label">Remember</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#22d3ee; background:rgba(6,182,212,0.1);">
+                    <div class="ls-icon">✅</div>
+                    <div class="ls-label">Check</div>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px;">
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#60a5fa; font-size:0.85rem;">1. Reason</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Analyse the goal using LLM (GPT-4o-mini) or keyword heuristics to understand intent and constraints.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#a78bfa; font-size:0.85rem;">2. Plan</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Decompose the goal into an ordered list of tool calls with expected parameters and fallback steps.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#34d399; font-size:0.85rem;">3. Act</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Execute the next planned tool call — TaskManagerTool, CodeAnalyzerTool, ReportGeneratorTool, etc.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#fbbf24; font-size:0.85rem;">4. Observe</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Capture the tool's result or error. Stream the observation event via SignalR to connected clients.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#f87171; font-size:0.85rem;">5. Remember</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Update short-term, working, and long-term memory tiers with new observations and intermediate results.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#22d3ee; font-size:0.85rem;">6. Check</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Evaluate whether the goal is achieved. If not, loop back to Reason with updated context. If yes, return result.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MEMORY -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🧠 3-Tier Memory System</h2>
+        <p class="section-subtitle">Hierarchical memory architecture enabling contextual continuity across agent sessions</p>
+        <div class="memory-tier">
+            <div class="memory-card">
+                <h4>Short-term Memory</h4>
+                <div class="mc-cap">20 entries</div>
+                <p class="mc-detail">In-memory sliding window of recent observations and actions within the current ReAct loop iteration. Oldest entries evicted when capacity is reached.</p>
+            </div>
+            <div class="memory-card">
+                <h4>Working Memory</h4>
+                <div class="mc-cap">Unbounded</div>
+                <p class="mc-detail">All intermediate results, tool outputs, and reasoning traces for the current task. Scoped to a single task execution — cleared when the task completes.</p>
+            </div>
+            <div class="memory-card">
+                <h4>Long-term Memory</h4>
+                <div class="mc-cap">500 entries</div>
+                <p class="mc-detail">Persistent storage of completed task outcomes, learned patterns, and embeddings. Enables the agent to retrieve relevant past experience for new tasks via semantic similarity search.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- AGENT TOOLS -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔧 Agent Tools</h2>
+        <p class="section-subtitle">5 tools available to the ReAct agent during task execution</p>
+        <div class="tool-grid">
+            <div class="tool-card">
+                <div class="tool-icon">📋</div>
+                <div><div class="tool-name">TaskManagerTool</div><div class="tool-desc">Create, update, delete, and query tasks in the project management database. Supports status transitions and priority changes.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🔍</div>
+                <div><div class="tool-name">CodeAnalyzerTool</div><div class="tool-desc">Analyse code snippets or repository structures. Estimates complexity, identifies patterns, and generates structured summaries.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">📊</div>
+                <div><div class="tool-name">ReportGeneratorTool</div><div class="tool-desc">Generate progress reports, sprint summaries, and status updates in Markdown or JSON format from task data.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🌐</div>
+                <div><div class="tool-name">WebSearcherTool</div><div class="tool-desc">Search the web for technical documentation, best practices, or relevant resources to inform task planning decisions.</div></div>
+            </div>
+            <div class="tool-card" style="grid-column: 1 / -1;">
+                <div class="tool-icon">🔔</div>
+                <div><div class="tool-name">NotificationTool</div><div class="tool-desc">Send push notifications to mobile devices via Expo, and broadcast real-time events via SignalR WebSocket hub to web clients.</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECH STACK -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🛠 Technology Stack</h2>
+        <p class="section-subtitle">Cross-platform full stack with autonomous AI capabilities</p>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead>
+                    <tr><th>Layer</th><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-blue">Web</span></td><td>Next.js</td><td>14</td><td>Kanban board with drag-and-drop, agent event feed</td></tr>
+                    <tr><td><span class="badge badge-teal">Mobile</span></td><td>React Native / Expo</td><td>50+</td><td>iOS &amp; Android companion app with push notifications</td></tr>
+                    <tr><td><span class="badge badge-blue">Web</span></td><td>TypeScript</td><td>5.x</td><td>Type safety for web and API clients</td></tr>
+                    <tr><td><span class="badge badge-purple">Backend</span></td><td>.NET</td><td>8.0</td><td>REST API, SignalR hub, task CRUD</td></tr>
+                    <tr><td><span class="badge badge-purple">Backend</span></td><td>SignalR</td><td>8.x</td><td>Real-time WebSocket streaming of agent events</td></tr>
+                    <tr><td><span class="badge badge-purple">Backend</span></td><td>Entity Framework Core</td><td>8.x</td><td>Task and agent session persistence</td></tr>
+                    <tr><td><span class="badge badge-green">Agent</span></td><td>Python FastAPI</td><td>0.110+</td><td>ReAct loop engine, tool execution, memory management</td></tr>
+                    <tr><td><span class="badge badge-green">Agent</span></td><td>OpenAI SDK</td><td>1.x</td><td>GPT-4o-mini for LLM-based planning (optional)</td></tr>
+                    <tr><td><span class="badge badge-orange">Infra</span></td><td>Docker &amp; Compose</td><td>24+</td><td>Containerised multi-service deployment</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- KEY FEATURES -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">✨ Key Features</h2>
+        <p class="section-subtitle">Autonomous task management with full-stack real-time capabilities</p>
+        <div class="grid-2">
+            <div class="card">
+                <div class="feature-item">
+                    <span class="feature-icon">🤖</span>
+                    <div><div class="feature-title">6-Phase ReAct Loop</div><div class="feature-desc">Reason → Plan → Act → Observe → Remember → Check. The agent autonomously iterates until the goal is achieved or a configurable iteration limit is reached.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🧠</span>
+                    <div><div class="feature-title">Dual-mode Planning</div><div class="feature-desc">LLM-based planning (GPT-4o-mini) when an API key is provided, falling back to rule-based keyword heuristics for zero-cost local operation.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📡</span>
+                    <div><div class="feature-title">Real-time Event Streaming</div><div class="feature-desc">Every agent event (reasoning step, tool call, observation) is streamed via SignalR WebSocket to the web dashboard in real time.</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <div><div class="feature-title">Mobile Companion App</div><div class="feature-desc">React Native / Expo app with push notifications for task assignment, status changes, and agent completion events on iOS and Android.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📌</span>
+                    <div><div class="feature-title">Kanban Board</div><div class="feature-desc">Drag-and-drop Kanban board with columns for Backlog, In Progress, Review, and Done. 8 seeded demo tasks with varied statuses and priorities.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🌱</span>
+                    <div><div class="feature-title">Demo Seed Data</div><div class="feature-desc">8 pre-seeded tasks covering diverse priorities (Critical, High, Medium, Low) and statuses to demonstrate the full project lifecycle on first launch.</div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API ENDPOINTS -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔌 API Endpoints</h2>
+        <p class="section-subtitle">REST endpoints across the .NET 8 orchestration layer and Python agent core</p>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead>
+                    <tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Service</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/tasks</td><td>List all tasks with status and priority filters</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/api/tasks</td><td>Create a new task</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-orange">PUT</span></td><td>/api/tasks/:id</td><td>Update task status, priority, or assignments</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-red">DELETE</span></td><td>/api/tasks/:id</td><td>Delete a task</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/api/agent/run</td><td>Start a new agent session with a goal string</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/sessions</td><td>List all agent sessions with outcomes</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/sessions/:id</td><td>Get full event log for an agent session</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/memory</td><td>Inspect current long-term memory entries</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/agent/execute</td><td>Execute a ReAct iteration (called internally)</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/agent/tool/:name</td><td>Invoke a specific tool by name</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/agent/health</td><td>Agent core health and LLM availability status</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/agent/tools</td><td>List available tools with schemas</td><td>Python</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- QUICK START -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🚀 Quick Start</h2>
+        <p class="section-subtitle">Run TaskPilot with demo data — LLM is optional, rule-based mode works out of the box</p>
+        <div class="card">
+            <p style="color:#94a3b8; margin-bottom:12px;"><strong style="color:#f1f5f9;">Step 1:</strong> Clone the repository</p>
+            <div class="code-block">
+<span class="cmd">git clone</span> https://github.com/your-org/ai-agent-taskpilot.git
+<span class="cmd">cd</span> ai-agent-taskpilot
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">Step 2:</strong> Configure environment (OpenAI key is optional)</p>
+            <div class="code-block">
+<span class="cmd">cp</span> .env.example .env
+<span class="comment"># Optional: add your OpenAI key for LLM-based planning</span>
+<span class="str">OPENAI_API_KEY</span>=sk-... <span class="comment"># Leave blank to use rule-based fallback</span>
+<span class="str">AGENT_MAX_ITERATIONS</span>=10
+<span class="str">MEMORY_LONG_TERM_CAPACITY</span>=500
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">Step 3:</strong> Start all services with Docker Compose</p>
+            <div class="code-block">
+<span class="cmd">docker compose up</span> --build -d
+<span class="comment"># Services starting:</span>
+<span class="comment">#  ✓ web-dashboard  → http://localhost:3002</span>
+<span class="comment">#  ✓ dotnet-api     → http://localhost:5002</span>
+<span class="comment">#  ✓ agent-core     → http://localhost:8001</span>
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">Step 4:</strong> Run an agent task via API</p>
+            <div class="code-block">
+<span class="cmd">curl</span> -X POST http://localhost:5002/api/agent/run \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"goal": "Create a task for implementing user authentication and assign it high priority"}'</span>
+<span class="comment"># Returns: {"sessionId": "sess_abc", "status": "running"}</span>
+<span class="comment"># Watch events stream at ws://localhost:5002/hubs/agent</span>
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">Step 5:</strong> Open the Kanban board at <a href="http://localhost:3002">http://localhost:3002</a></p>
+        </div>
+    </section>
+
+    <!-- SECURITY -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔒 Security Considerations</h2>
+        <p class="section-subtitle">Safe autonomous agent operation with configurable guardrails</p>
+        <div class="security-grid">
+            <div class="security-card">
+                <h4>🔑 API Key Security</h4>
+                <p>OpenAI API keys stored only in environment variables. The Python agent core never logs keys. Requests to OpenAI are made server-side only — keys are never exposed to browser clients.</p>
+            </div>
+            <div class="security-card">
+                <h4>🔁 Iteration Limits</h4>
+                <p>The ReAct loop has a configurable maximum iteration count (default 10). This prevents infinite loops and runaway token costs when using LLM-based planning.</p>
+            </div>
+            <div class="security-card">
+                <h4>🛡 Tool Access Control</h4>
+                <p>Each agent tool validates its inputs before execution. TaskManagerTool enforces field-level validation. WebSearcherTool has domain allow/block lists.</p>
+            </div>
+            <div class="security-card">
+                <h4>📡 WebSocket Authentication</h4>
+                <p>SignalR hub connections require a valid session token. Unauthenticated clients receive only public events; task-level events require authorization.</p>
+            </div>
+            <div class="security-card">
+                <h4>💾 Memory Privacy</h4>
+                <p>Long-term memory entries are scoped per user session. Embeddings for sensitive tasks are stored locally without sending to external embedding services.</p>
+            </div>
+            <div class="security-card">
+                <h4>📱 Mobile Push Notifications</h4>
+                <p>Expo push tokens are stored encrypted. Notification payloads contain only task IDs — full task data is fetched by the client after receiving the notification.</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    <p>TaskPilot &nbsp;·&nbsp; AI/ML Portfolio &nbsp;·&nbsp; Built with <span>Python FastAPI</span>, <span>.NET 8</span>, <span>Next.js 14</span>, <span>React Native/Expo</span></p>
+    <p style="margin-top:8px; color:#334155;">Documentation generated for portfolio demonstration purposes.</p>
+</footer>
+
+</body>
+</html>

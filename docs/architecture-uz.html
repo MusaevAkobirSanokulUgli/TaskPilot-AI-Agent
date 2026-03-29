@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskPilot AI Agent - Arxitektura Hujjati</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; line-height: 1.6; }
+        a { color: #10b981; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .hero {
+            background: linear-gradient(135deg, #0d2818 0%, #064e3b 30%, #0f172a 100%);
+            padding: 80px 40px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.2) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(16,185,129,0.15);
+            border: 1px solid rgba(16,185,129,0.4);
+            color: #6ee7b7;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #34d399, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            animation: shimmer 4s ease-in-out infinite;
+        }
+        @keyframes shimmer { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
+        .hero-tagline { font-size: 1.2rem; color: #94a3b8; max-width: 720px; margin: 0 auto 32px; }
+        .lang-badge {
+            display: inline-block;
+            background: #10b981;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 32px;
+        }
+        .stats-row { display: flex; justify-content: center; gap: 32px; flex-wrap: wrap; margin-top: 8px; }
+        .stat-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 24px; min-width: 110px; }
+        .stat-num { font-size: 1.6rem; font-weight: 800; color: #34d399; }
+        .stat-label { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+        .section { padding: 56px 0; }
+        .section-title {
+            font-size: 1.7rem; font-weight: 700; color: #f1f5f9; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-title::after {
+            content: ''; flex: 1; height: 2px;
+            background: linear-gradient(90deg, rgba(16,185,129,0.5), transparent);
+            border-radius: 2px; margin-left: 12px;
+        }
+        .section-subtitle { color: #64748b; margin-bottom: 32px; font-size: 0.97rem; }
+
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s; }
+        .card:hover { border-color: #10b981; box-shadow: 0 0 24px rgba(16,185,129,0.12); transform: translateY(-2px); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+        @media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } .hero h1 { font-size: 2rem; } }
+
+        .react-loop {
+            display: flex; justify-content: center; align-items: center;
+            flex-wrap: wrap; gap: 8px; padding: 32px; position: relative;
+        }
+        .loop-step {
+            background: #1e293b; border: 2px solid #334155; border-radius: 50%;
+            width: 90px; height: 90px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; cursor: default; transition: all 0.2s; position: relative;
+        }
+        .loop-step:hover { border-color: #10b981; background: rgba(16,185,129,0.1); box-shadow: 0 0 16px rgba(16,185,129,0.25); }
+        .loop-step .ls-icon { font-size: 1.2rem; }
+        .loop-step .ls-label { font-size: 0.65rem; font-weight: 700; color: #94a3b8; margin-top: 3px; text-transform: uppercase; }
+        .loop-arrow { color: #475569; font-size: 1.2rem; align-self: center; }
+
+        .arch-diagram { background: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 40px 24px; margin: 24px 0; }
+        .arch-layer { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+        .arch-box { background: #1e293b; border: 2px solid #334155; border-radius: 12px; padding: 14px 22px; text-align: center; min-width: 160px; transition: all 0.2s; }
+        .arch-box.blue { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+        .arch-box.purple { border-color: #8b5cf6; background: rgba(139,92,246,0.08); }
+        .arch-box.green { border-color: #10b981; background: rgba(16,185,129,0.08); }
+        .arch-box.orange { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+        .arch-box.teal { border-color: #06b6d4; background: rgba(6,182,212,0.08); }
+        .arch-box-title { font-weight: 700; font-size: 0.9rem; color: #f1f5f9; }
+        .arch-box-sub { font-size: 0.75rem; color: #94a3b8; margin-top: 3px; }
+        .arch-arrow { text-align: center; color: #475569; font-size: 1.4rem; margin: 4px 0; }
+        .arch-label { text-align: center; font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 8px; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        thead th { background: #1e293b; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 16px; text-align: left; border-bottom: 2px solid #334155; }
+        tbody td { padding: 12px 16px; border-bottom: 1px solid #1e293b; font-size: 0.9rem; color: #cbd5e1; vertical-align: top; }
+        tbody tr:hover { background: rgba(16,185,129,0.05); }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-green { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+        .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); }
+        .badge-orange { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+        .badge-teal { background: rgba(6,182,212,0.15); color: #22d3ee; border: 1px solid rgba(6,182,212,0.3); }
+        .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+        .code-block { background: #020617; border: 1px solid #1e293b; border-radius: 12px; padding: 20px 24px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; color: #e2e8f0; overflow-x: auto; margin: 12px 0; line-height: 1.7; }
+        .code-block .comment { color: #475569; }
+        .code-block .cmd { color: #34d399; }
+        .code-block .str { color: #fbbf24; }
+
+        .feature-item { display: flex; gap: 16px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid #1e293b; }
+        .feature-item:last-child { border-bottom: none; }
+        .feature-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+        .feature-title { font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+        .feature-desc { font-size: 0.9rem; color: #94a3b8; }
+
+        .problem-list { list-style: none; margin-top: 16px; }
+        .problem-list li { padding: 12px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; display: flex; align-items: flex-start; gap: 10px; font-size: 0.95rem; }
+        .problem-list li::before { content: '⚠'; font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+        .security-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        @media (max-width: 600px) { .security-grid { grid-template-columns: 1fr; } }
+        .security-card { background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 16px 18px; }
+        .security-card h4 { color: #34d399; font-size: 0.9rem; margin-bottom: 6px; }
+        .security-card p { color: #94a3b8; font-size: 0.85rem; }
+
+        .memory-tier { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+        @media (max-width: 700px) { .memory-tier { grid-template-columns: 1fr; } }
+        .memory-card { background: #0f172a; border: 1px solid #334155; border-radius: 12px; padding: 18px; }
+        .memory-card h4 { color: #34d399; margin-bottom: 8px; font-size: 0.9rem; }
+        .memory-card .mc-detail { font-size: 0.82rem; color: #64748b; }
+        .memory-card .mc-cap { font-size: 1.3rem; font-weight: 800; color: #f1f5f9; margin: 6px 0; }
+
+        .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+        @media (max-width: 600px) { .tool-grid { grid-template-columns: 1fr; } }
+        .tool-card { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; }
+        .tool-icon { font-size: 1.3rem; flex-shrink: 0; }
+        .tool-name { font-weight: 700; color: #f1f5f9; font-size: 0.88rem; }
+        .tool-desc { font-size: 0.8rem; color: #64748b; margin-top: 3px; }
+
+        footer { background: #020617; border-top: 1px solid #1e293b; padding: 32px 40px; text-align: center; color: #475569; font-size: 0.85rem; }
+        footer span { color: #10b981; }
+        hr { border: none; border-top: 1px solid #1e293b; margin: 0; }
+    </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-badge">Loyiha 3 &nbsp;·&nbsp; Avtonom AI Agent</div>
+    <h1>TaskPilot</h1>
+    <p class="hero-tagline">Loyiha boshqaruvini avtomatlashtirish uchun ReAct (Fikrlash-Harakat-Kuzatish) tsiklida ishlaydigan avtonom AI agent — 3 bosqichli xotira, 5 ta asbob va real vaqtli WebSocket oqimi bilan.</p>
+    <div><span class="lang-badge">🇺🇿 O'zbek tili</span></div>
+    <div class="stats-row">
+        <div class="stat-item"><div class="stat-num">~80</div><div class="stat-label">Fayllar</div></div>
+        <div class="stat-item"><div class="stat-num">4</div><div class="stat-label">Arxitektura qatlamlari</div></div>
+        <div class="stat-item"><div class="stat-num">5</div><div class="stat-label">Agent asboblari</div></div>
+        <div class="stat-item"><div class="stat-num">3</div><div class="stat-label">Xotira bosqichlari</div></div>
+        <div class="stat-item"><div class="stat-num">6</div><div class="stat-label">ReAct bosqichlari</div></div>
+    </div>
+</section>
+
+<hr>
+
+<div class="container">
+
+    <!-- MUAMMO -->
+    <section class="section">
+        <h2 class="section-title">🎯 Muammo ta'rifi</h2>
+        <p class="section-subtitle">Nima uchun oddiy chatbotlar murakkab loyiha boshqaruvida muvaffaqiyatsiz</p>
+        <div class="card">
+            <p style="color:#94a3b8; margin-bottom:16px;">An'anaviy chatbotlar holatsiz va reaktiv — ular xotirasiz, rejalashtirmasdan va ko'p bosqichli harakatlar qila olmasdan har bir savolga alohida javob beradi. Loyiha boshqaruvi vazifalar, muddatlar, ustuvorliklar va jamoa a'zolari bo'yicha muvofiqlashtirish talab qiladi — bu doimiy holat va avtonom qaror qabul qilishni talab qiladi.</p>
+            <ul class="problem-list">
+                <li>Chatbotlar rejalashtira olmaydi: ular alohida so'rovlarga javob beradi, lekin yuqori darajadagi maqsadni bajariladigan qadamlar ketma-ketligiga bo'la olmaydi.</li>
+                <li>Doimiy xotira yo'q: har bir suhbat yangilanib boshlanadi, foydalanuvchilar agent oldingi seanslardan eslab qolishi kerak bo'lgan kontekstni takrorlashga majbur bo'ladi.</li>
+                <li>Asboblarga kirish yo'q: chatbotlar aslida vazifalar yarata olmaydi, ma'lumotlar bazasini so'rov qila olmaydi, hisobotlar yarata olmaydi yoki bildirishnomalar yubora olmaydi — ular faqat bularni qanday qilishni tasvirlay oladi.</li>
+                <li>O'z-o'zini tuzatish yo'q: agar harakat muvaffaqiyatsiz bo'lsa, oddiy chatbot muvaffaqiyatsizlikni kuzatib, uni o'ylash va avtomatik ravishda boshqa yondashuv sinab ko'ra olmaydi.</li>
+                <li>Mobil va real vaqt bo'shlig'i: loyiha boshqaruvi qurilmalar bo'yicha sodir bo'ladi va push-bildirishnomalar hamda jonli yangilanishlarni talab qiladi — faqat API bilan ishlaydigan chatbotlarda bu imkoniyatlar yo'q.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ARXITEKTURA -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🏗 Arxitektura</h2>
+        <p class="section-subtitle">Web, mobil, .NET orkestratsiya va Python agent yadrosi bo'ylab to'rt qatlamli arxitektura</p>
+        <div class="arch-diagram">
+            <div class="arch-label">Mijoz qatlami</div>
+            <div class="arch-layer">
+                <div class="arch-box blue">
+                    <div class="arch-box-title">Next.js 14 Web</div>
+                    <div class="arch-box-sub">Port 3002 · Kanban + Agent UI</div>
+                </div>
+                <div class="arch-box teal">
+                    <div class="arch-box-title">React Native / Expo</div>
+                    <div class="arch-box-sub">Mobil · Push-bildirishnomalar</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ REST + WebSocket (SignalR)</div>
+            <div class="arch-label">Orkestratsiya qatlami</div>
+            <div class="arch-layer">
+                <div class="arch-box purple">
+                    <div class="arch-box-title">.NET 8 Web API</div>
+                    <div class="arch-box-sub">Port 5002 · Vazifa boshqaruvi va SignalR hub</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ REST API / JSON</div>
+            <div class="arch-label">Agent yadrosi qatlami</div>
+            <div class="arch-layer">
+                <div class="arch-box green">
+                    <div class="arch-box-title">Python FastAPI</div>
+                    <div class="arch-box-sub">Port 8001 · ReAct tsikl mexanizmi</div>
+                </div>
+            </div>
+            <div class="arch-arrow">↕ Ixtiyoriy LLM API</div>
+            <div class="arch-label">Intellekt qatlami</div>
+            <div class="arch-layer">
+                <div class="arch-box orange">
+                    <div class="arch-box-title">OpenAI SDK</div>
+                    <div class="arch-box-sub">GPT-4o-mini (ixtiyoriy) yoki qoida asosidagi zahira</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- REACT TSIKL -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔄 ReAct Tsikl</h2>
+        <p class="section-subtitle">6 bosqichli avtonom fikrlash va harakat qilish tsikli</p>
+        <div class="card">
+            <div class="react-loop">
+                <div class="loop-step" style="border-color:#60a5fa; background:rgba(59,130,246,0.1);">
+                    <div class="ls-icon">🧠</div>
+                    <div class="ls-label">Fikrlash</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#a78bfa; background:rgba(139,92,246,0.1);">
+                    <div class="ls-icon">📋</div>
+                    <div class="ls-label">Rejalashtirish</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#34d399; background:rgba(16,185,129,0.1);">
+                    <div class="ls-icon">⚡</div>
+                    <div class="ls-label">Harakat</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#fbbf24; background:rgba(245,158,11,0.1);">
+                    <div class="ls-icon">👁</div>
+                    <div class="ls-label">Kuzatish</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#f87171; background:rgba(239,68,68,0.1);">
+                    <div class="ls-icon">💾</div>
+                    <div class="ls-label">Eslab qolish</div>
+                </div>
+                <div class="loop-arrow">→</div>
+                <div class="loop-step" style="border-color:#22d3ee; background:rgba(6,182,212,0.1);">
+                    <div class="ls-icon">✅</div>
+                    <div class="ls-label">Tekshirish</div>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px;">
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#60a5fa; font-size:0.85rem;">1. Fikrlash (Reason)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Maqsadni LLM (GPT-4o-mini) yoki kalit so'z evristikasi yordamida tahlil qilish va niyat hamda cheklovlarni tushunish.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#a78bfa; font-size:0.85rem;">2. Rejalashtirish (Plan)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Maqsadni kutilgan parametrlar va zahira qadamlar bilan asbob chaqiruvlarining tartiblangan ro'yxatiga bo'lish.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#34d399; font-size:0.85rem;">3. Harakat (Act)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Keyingi rejalashtirilgan asbob chaqiruvini bajarish — TaskManagerTool, CodeAnalyzerTool, ReportGeneratorTool va boshqalar.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#fbbf24; font-size:0.85rem;">4. Kuzatish (Observe)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Asbob natijasini yoki xatosini qabul qilish. Kuzatish hodisasini SignalR orqali ulangan mijozlarga uzatish.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#f87171; font-size:0.85rem;">5. Eslab qolish (Remember)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Yangi kuzatishlar va oraliq natijalar bilan qisqa muddatli, ish va uzoq muddatli xotira bosqichlarini yangilash.</p></div>
+                <div style="background:#0f172a; border-radius:8px; padding:12px;"><strong style="color:#22d3ee; font-size:0.85rem;">6. Tekshirish (Check)</strong><p style="font-size:0.8rem; color:#64748b; margin-top:4px;">Maqsad amalga oshirilganligini baholash. Agar yo'q bo'lsa, yangilangan kontekst bilan Fikrlashga qaytish. Agar ha — natijani qaytarish.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- XOTIRA -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🧠 3 Bosqichli Xotira Tizimi</h2>
+        <p class="section-subtitle">Agent seanslari bo'ylab kontekstual uzluksizlikni ta'minlovchi ierarxik xotira arxitekturasi</p>
+        <div class="memory-tier">
+            <div class="memory-card">
+                <h4>Qisqa muddatli xotira</h4>
+                <div class="mc-cap">20 yozuv</div>
+                <p class="mc-detail">Joriy ReAct tsikl iteratsiyasidagi so'nggi kuzatishlar va harakatlarning xotiradagi siljiydigan oynasi. Sig'im to'lganida eng eski yozuvlar o'chiriladi.</p>
+            </div>
+            <div class="memory-card">
+                <h4>Ish xotirasi</h4>
+                <div class="mc-cap">Cheksiz</div>
+                <p class="mc-detail">Joriy vazifadagi barcha oraliq natijalar, asbob chiqishlari va fikrlash izlari. Bitta vazifa bajarilishiga cheklangan — vazifa tugaganda tozalanadi.</p>
+            </div>
+            <div class="memory-card">
+                <h4>Uzoq muddatli xotira</h4>
+                <div class="mc-cap">500 yozuv</div>
+                <p class="mc-detail">Tugallangan vazifa natijalari, o'rganilgan naqshlar va vektorlar doimiy saqlash. Agentga semantik o'xshashlik qidirish orqali yangi vazifalar uchun o'tgan tajribani olish imkonini beradi.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- AGENT ASBOBLARI -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔧 Agent Asboblari</h2>
+        <p class="section-subtitle">Vazifa bajarish davomida ReAct agentiga mavjud 5 ta asbob</p>
+        <div class="tool-grid">
+            <div class="tool-card">
+                <div class="tool-icon">📋</div>
+                <div><div class="tool-name">TaskManagerTool</div><div class="tool-desc">Loyiha boshqaruvi ma'lumotlar bazasida vazifalar yaratish, yangilash, o'chirish va so'rov qilish. Holat o'tishlarini va ustuvorlik o'zgarishlarini qo'llab-quvvatlaydi.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🔍</div>
+                <div><div class="tool-name">CodeAnalyzerTool</div><div class="tool-desc">Kod parchalari yoki ombor tuzilmalarini tahlil qilish. Murakkablikni baholash, naqshlarni aniqlash va tuzilgan xulosalar yaratish.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">📊</div>
+                <div><div class="tool-name">ReportGeneratorTool</div><div class="tool-desc">Vazifa ma'lumotlaridan Markdown yoki JSON formatida taraqqiyot hisobotlari, sprint xulosalari va holat yangilanishlarini yaratish.</div></div>
+            </div>
+            <div class="tool-card">
+                <div class="tool-icon">🌐</div>
+                <div><div class="tool-name">WebSearcherTool</div><div class="tool-desc">Vazifa rejalashtirish qarorlarini ma'lumot bilan ta'minlash uchun texnik hujjatlar, eng yaxshi amaliyotlar yoki tegishli resurslarni qidirish.</div></div>
+            </div>
+            <div class="tool-card" style="grid-column: 1 / -1;">
+                <div class="tool-icon">🔔</div>
+                <div><div class="tool-name">NotificationTool</div><div class="tool-desc">Expo orqali mobil qurilmalarga push-bildirishnomalar yuborish va web mijozlarga SignalR WebSocket hub orqali real vaqtli hodisalarni uzatish.</div></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEXNOLOGIYA STACK -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🛠 Texnologiya To'plami</h2>
+        <p class="section-subtitle">Avtonom AI imkoniyatlari bilan platformalar arasi to'liq to'plam</p>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead>
+                    <tr><th>Qatlam</th><th>Texnologiya</th><th>Versiya</th><th>Maqsad</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-blue">Web</span></td><td>Next.js</td><td>14</td><td>Sudrab tashlash Kanban taxtasi, agent hodisalari lenti</td></tr>
+                    <tr><td><span class="badge badge-teal">Mobil</span></td><td>React Native / Expo</td><td>50+</td><td>Push-bildirishnomalar bilan iOS va Android hamroh ilovasi</td></tr>
+                    <tr><td><span class="badge badge-blue">Web</span></td><td>TypeScript</td><td>5.x</td><td>Web va API mijozlari uchun tip xavfsizligi</td></tr>
+                    <tr><td><span class="badge badge-purple">Backend</span></td><td>.NET</td><td>8.0</td><td>REST API, SignalR hub, vazifa CRUD</td></tr>
+                    <tr><td><span class="badge badge-purple">Backend</span></td><td>SignalR</td><td>8.x</td><td>Agent hodisalarining real vaqtli WebSocket uzatilishi</td></tr>
+                    <tr><td><span class="badge badge-purple">Backend</span></td><td>Entity Framework Core</td><td>8.x</td><td>Vazifa va agent seansi saqlash</td></tr>
+                    <tr><td><span class="badge badge-green">Agent</span></td><td>Python FastAPI</td><td>0.110+</td><td>ReAct tsikl mexanizmi, asbob bajarish, xotira boshqaruvi</td></tr>
+                    <tr><td><span class="badge badge-green">Agent</span></td><td>OpenAI SDK</td><td>1.x</td><td>LLM asosidagi rejalashtirish uchun GPT-4o-mini (ixtiyoriy)</td></tr>
+                    <tr><td><span class="badge badge-orange">Infra</span></td><td>Docker va Compose</td><td>24+</td><td>Konteynerli ko'p xizmatli joylashuv</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ASOSIY XUSUSIYATLAR -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">✨ Asosiy Xususiyatlar</h2>
+        <p class="section-subtitle">To'liq to'plam real vaqtli imkoniyatlar bilan avtonom vazifa boshqaruvi</p>
+        <div class="grid-2">
+            <div class="card">
+                <div class="feature-item">
+                    <span class="feature-icon">🤖</span>
+                    <div><div class="feature-title">6 Bosqichli ReAct Tsikl</div><div class="feature-desc">Fikrlash → Rejalashtirish → Harakat → Kuzatish → Eslab qolish → Tekshirish. Agent maqsad amalga oshirilgunga yoki sozlanadigan iteratsiya chegarasiga yetilgunga qadar mustaqil takrorlaydi.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🧠</span>
+                    <div><div class="feature-title">Ikki rejimli rejalashtirish</div><div class="feature-desc">API kalit taqdim etilganida LLM asosidagi rejalashtirish (GPT-4o-mini), nol xarajatli mahalliy ishlash uchun qoida asosidagi kalit so'z evristikasiga qaytish bilan.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📡</span>
+                    <div><div class="feature-title">Real Vaqtli Hodisa Uzatish</div><div class="feature-desc">Har bir agent hodisasi (fikrlash qadami, asbob chaqiruvi, kuzatish) SignalR WebSocket orqali real vaqtda web boshqaruv paneliga uzatiladi.</div></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <div><div class="feature-title">Mobil Hamroh Ilova</div><div class="feature-desc">iOS va Android-da vazifa belgilash, holat o'zgarishlari va agent yakunlash hodisalari uchun push-bildirishnomalar bilan React Native / Expo ilovasi.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📌</span>
+                    <div><div class="feature-title">Kanban Taxtasi</div><div class="feature-desc">Orqaga qolish, Jarayonda, Ko'rib chiqish va Bajarildi uchun ustunlar bilan sudrab tashlash Kanban taxtasi. Turli holat va ustuvorliklar bilan 8 ta oldindan to'ldirilgan demo vazifa.</div></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🌱</span>
+                    <div><div class="feature-title">Demo Urug' Ma'lumotlari</div><div class="feature-desc">Birinchi ishga tushirishda to'liq loyiha hayot tsiklini namoyish qilish uchun turli ustuvorliklar (Kritik, Yuqori, O'rta, Past) va holatlarda 8 ta oldindan to'ldirilgan vazifa.</div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- API SO'NGI NUQTALARI -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔌 API So'nggi Nuqtalari</h2>
+        <p class="section-subtitle">.NET 8 orkestratsiya qatlami va Python agent yadrosi bo'ylab REST so'nggi nuqtalari</p>
+        <div class="card" style="padding:0; overflow:hidden;">
+            <table>
+                <thead>
+                    <tr><th>Metod</th><th>So'nggi nuqta</th><th>Tavsif</th><th>Xizmat</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/tasks</td><td>Holat va ustuvorlik filtrlari bilan barcha vazifalarni ro'yxatlash</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/api/tasks</td><td>Yangi vazifa yaratish</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-orange">PUT</span></td><td>/api/tasks/:id</td><td>Vazifa holati, ustuvorligi yoki belgilashlarini yangilash</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-red">DELETE</span></td><td>/api/tasks/:id</td><td>Vazifani o'chirish</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/api/agent/run</td><td>Maqsad qatori bilan yangi agent seansini boshlash</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/sessions</td><td>Natijalari bilan barcha agent seanslarini ro'yxatlash</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/sessions/:id</td><td>Agent seansi uchun to'liq hodisa jurnalini olish</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/api/agent/memory</td><td>Joriy uzoq muddatli xotira yozuvlarini ko'rib chiqish</td><td>.NET API</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/agent/execute</td><td>ReAct iteratsiyasini bajarish (ichki chaqiriladi)</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-blue">POST</span></td><td>/agent/tool/:name</td><td>Nom bo'yicha ma'lum bir asbobni chaqirish</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/agent/health</td><td>Agent yadrosi salomatligi va LLM mavjudligi holati</td><td>Python</td></tr>
+                    <tr><td><span class="badge badge-green">GET</span></td><td>/agent/tools</td><td>Sxemalar bilan mavjud asboblarni ro'yxatlash</td><td>Python</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- TEZKOR BOSHLASH -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🚀 Tezkor Boshlash</h2>
+        <p class="section-subtitle">TaskPilot-ni demo ma'lumotlar bilan ishga tushirish — LLM ixtiyoriy, qoida asosidagi rejim darhol ishlaydi</p>
+        <div class="card">
+            <p style="color:#94a3b8; margin-bottom:12px;"><strong style="color:#f1f5f9;">1-qadam:</strong> Repozitoriyani klonlash</p>
+            <div class="code-block">
+<span class="cmd">git clone</span> https://github.com/your-org/ai-agent-taskpilot.git
+<span class="cmd">cd</span> ai-agent-taskpilot
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">2-qadam:</strong> Muhitni sozlash (OpenAI kaliti ixtiyoriy)</p>
+            <div class="code-block">
+<span class="cmd">cp</span> .env.example .env
+<span class="comment"># Ixtiyoriy: LLM asosidagi rejalashtirish uchun OpenAI kalitini qo'shish</span>
+<span class="str">OPENAI_API_KEY</span>=sk-... <span class="comment"># Qoida asosidagi zahira uchun bo'sh qoldiring</span>
+<span class="str">AGENT_MAX_ITERATIONS</span>=10
+<span class="str">MEMORY_LONG_TERM_CAPACITY</span>=500
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">3-qadam:</strong> Docker Compose bilan barcha xizmatlarni ishga tushirish</p>
+            <div class="code-block">
+<span class="cmd">docker compose up</span> --build -d
+<span class="comment"># Xizmatlar ishga tushmoqda:</span>
+<span class="comment">#  ✓ web-dashboard  → http://localhost:3002</span>
+<span class="comment">#  ✓ dotnet-api     → http://localhost:5002</span>
+<span class="comment">#  ✓ agent-core     → http://localhost:8001</span>
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">4-qadam:</strong> API orqali agent vazifasini bajarish</p>
+            <div class="code-block">
+<span class="cmd">curl</span> -X POST http://localhost:5002/api/agent/run \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"goal": "Foydalanuvchi autentifikatsiyasini joriy etish uchun vazifa yaratish va yuqori ustuvorlik belgilash"}'</span>
+<span class="comment"># Qaytaradi: {"sessionId": "sess_abc", "status": "running"}</span>
+<span class="comment"># ws://localhost:5002/hubs/agent da hodisalar oqimini kuzating</span>
+            </div>
+            <p style="color:#94a3b8; margin: 16px 0 12px;"><strong style="color:#f1f5f9;">5-qadam:</strong> <a href="http://localhost:3002">http://localhost:3002</a> da Kanban taxtasini oching</p>
+        </div>
+    </section>
+
+    <!-- XAVFSIZLIK -->
+    <section class="section" style="padding-top:0">
+        <h2 class="section-title">🔒 Xavfsizlik Masalalari</h2>
+        <p class="section-subtitle">Sozlanadigan himoya choralari bilan xavfsiz avtonom agent ishlashi</p>
+        <div class="security-grid">
+            <div class="security-card">
+                <h4>🔑 API Kalit Xavfsizligi</h4>
+                <p>OpenAI API kalitlari faqat muhit o'zgaruvchilarida saqlanadi. Python agent yadrosi hech qachon kalitlarni jurnallamaydi. OpenAI-ga so'rovlar faqat server tomonida amalga oshiriladi — kalitlar hech qachon brauzer mijozlariga ko'rsatilmaydi.</p>
+            </div>
+            <div class="security-card">
+                <h4>🔁 Iteratsiya Chegaralari</h4>
+                <p>ReAct tsikli sozlanadigan maksimal iteratsiya soniga ega (standart 10). Bu LLM asosidagi rejalashtirish ishlatilganda cheksiz tsikllar va ortiqcha token xarajatlarining oldini oladi.</p>
+            </div>
+            <div class="security-card">
+                <h4>🛡 Asbob Kirish Nazorati</h4>
+                <p>Har bir agent asbob kirishlarni bajarishdan oldin tekshiradi. TaskManagerTool maydon darajasida validatsiyani qo'llaydi. WebSearcherTool domenga ruxsat berish/bloklash ro'yxatlariga ega.</p>
+            </div>
+            <div class="security-card">
+                <h4>📡 WebSocket Autentifikatsiyasi</h4>
+                <p>SignalR hub ulanishlari to'g'ri seans tokenini talab qiladi. Autentifikatsiya qilinmagan mijozlar faqat ommaviy hodisalarni oladi; vazifa darajasidagi hodisalar avtorizatsiyani talab qiladi.</p>
+            </div>
+            <div class="security-card">
+                <h4>💾 Xotira Maxfiyligi</h4>
+                <p>Uzoq muddatli xotira yozuvlari foydalanuvchi seansi bo'yicha cheklangan. Maxfiy vazifalar uchun vektorlar tashqi vektorlash xizmatlariga yuborilmasdan mahalliy saqlanadi.</p>
+            </div>
+            <div class="security-card">
+                <h4>📱 Mobil Push-Bildirishnomalar</h4>
+                <p>Expo push tokenlari shifrlangan holda saqlanadi. Bildirishnoma yuklamalari faqat vazifa ID-larini o'z ichiga oladi — to'liq vazifa ma'lumotlari bildirishnomani olgandan so'ng mijoz tomonidan olinadi.</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    <p>TaskPilot &nbsp;·&nbsp; AI/ML Portfolio &nbsp;·&nbsp; <span>Python FastAPI</span>, <span>.NET 8</span>, <span>Next.js 14</span>, <span>React Native/Expo</span> bilan qurilgan</p>
+    <p style="margin-top:8px; color:#334155;">Hujjat portfolio namoyish maqsadlari uchun yaratilgan.</p>
+</footer>
+
+</body>
+</html>

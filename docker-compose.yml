@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3200:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5002
+      - NEXT_PUBLIC_AGENT_URL=http://localhost:8001
+    depends_on:
+      - backend
+      - agent-core
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:5002
+      - AgentCore__BaseUrl=http://agent-core:8001
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/taskpilot.db
+    volumes:
+      - backend-data:/app/data
+    depends_on:
+      - agent-core
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:5002/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  agent-core:
+    build:
+      context: ./agent-core
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - DOTNET_API_URL=http://backend:5002
+      - OPENAI_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - OPENAI_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      - AGENT_PORT=8001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  mobile:
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+    ports:
+      - "19006:19006"
+    environment:
+      - EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+      - API_URL=http://localhost:5002
+    restart: unless-stopped
+
+volumes:
+  backend-data:
