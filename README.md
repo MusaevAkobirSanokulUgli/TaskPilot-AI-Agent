@@ -11,6 +11,8 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+**[Live Demo](https://taskpilot-ai-gamma.vercel.app)** | **[Deploy Backend to Render](https://render.com/deploy?repo=https://github.com/MusaevAkobirSanokulUgli/TaskPilot-AI-Agent)**
+
 An autonomous AI agent that manages project workflows using a **ReAct (Reason-Act-Observe)** loop. TaskPilot triages bugs, assigns tasks, analyzes code, generates reports, and monitors project health — with a web dashboard and mobile companion app.
 
 ---
