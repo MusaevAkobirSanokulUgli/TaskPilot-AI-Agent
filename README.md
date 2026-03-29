@@ -214,7 +214,3 @@ TaskPilot-AI-Agent/
 ├── docs/                   # Architecture documentation
 └── docker-compose.yml
 ```
-
-## License
-
-MIT
