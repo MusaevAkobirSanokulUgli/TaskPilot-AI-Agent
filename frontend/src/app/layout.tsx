@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@/styles/globals.css";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
+import DemoBanner from "@/components/DemoBanner";
 
 export const metadata: Metadata = {
   title: "TaskPilot - AI Agent Dashboard",
@@ -19,6 +20,7 @@ export default function RootLayout({
         <div className="flex min-h-screen">
           <Sidebar />
           <div className="flex-1 flex flex-col">
+            <DemoBanner />
             <Header />
             <main className="flex-1 overflow-auto">{children}</main>
           </div>

@@ -28,13 +28,16 @@ builder.Services.AddSignalR();
 builder.Services.AddControllers();
 
 // CORS
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:3000", "http://localhost:3002", "http://localhost:3200", "http://localhost:19006", "http://localhost:8082" };
+var allowedOrigins = (builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:3000", "http://localhost:3002", "http://localhost:3200", "http://localhost:19006", "http://localhost:8082", "https://taskpilot-ai-gamma.vercel.app" }).ToList();
+var extraOrigins = Environment.GetEnvironmentVariable("CORS_ORIGINS");
+if (!string.IsNullOrEmpty(extraOrigins))
+    allowedOrigins.AddRange(extraOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins)
+        policy.WithOrigins(allowedOrigins.ToArray())
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
