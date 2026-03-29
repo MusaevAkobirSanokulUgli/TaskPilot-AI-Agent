@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: taskpilot-api
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5000
+      - key: AgentCore__BaseUrl
+        value: https://taskpilot-agent-core.onrender.com
+
+  - type: web
+    name: taskpilot-agent-core
+    runtime: docker
+    dockerfilePath: agent-core/Dockerfile
+    dockerContext: agent-core
+    plan: free
+    envVars:
+      - key: AGENT_PORT
+        value: "8001"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://api.deepseek.com
+      - key: OPENAI_MODEL
+        value: deepseek-chat
